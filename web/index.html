@@ -6,13 +6,13 @@
 <title>Quorum — On-Chain Threat Intelligence</title>
 <style>
   :root{
-    --bg:#0a0b0d; --surface:#14171c; --surface-solid:#14171c; --surface-2:#1e222a;
-    --border:#242932; --border-soft:rgba(255,255,255,.06);
-    --text:#f3f5f8; --muted:#7c838d; --muted-2:#a7adb6;
-    --blue:#4d9fff; --amber:#f0a35f; --green:#3ecf8e; --red:#f05d68;
+    --bg:#0a0a0a; --surface:#141414; --surface-solid:#141414; --surface-2:#1f1f1f;
+    --border:#242424; --border-soft:rgba(255,255,255,.05);
+    --text:#ffffff; --muted:#8b8f94; --muted-2:#b6babf;
+    --blue:#37e0a0; --amber:#f0b45f; --green:#37e0a0; --red:#f0616d;
     --sans:-apple-system,"Inter","Segoe UI",system-ui,sans-serif;
     --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,monospace;
-    --r-card:14px; --r-in:8px;
+    --r-card:12px; --r-in:8px;
   }
   *{box-sizing:border-box}
   html,body{margin:0}
@@ -49,8 +49,8 @@
     color:var(--muted); padding:9px 18px; border-radius:8px; transition:.15s; user-select:none;
     letter-spacing:-.01em}
   .nav a:hover{color:var(--text); background:rgba(255,255,255,.03)}
-  .nav a.active{color:#fff; background:rgba(71,159,250,.18);
-    box-shadow:inset 0 0 0 1px rgba(71,159,250,.45)}
+  .nav a.active{color:#fff; background:rgba(55,224,160,.18);
+    box-shadow:inset 0 0 0 1px rgba(55,224,160,.45)}
 
   /* hero */
   header.hero{padding:26px 0 14px}
@@ -95,9 +95,9 @@
   /* threat board */
   .board-panel{margin-bottom:26px}
   .dispatch{margin-left:auto; margin-right:12px; font-family:var(--mono); font-size:11.5px;
-    color:var(--blue); background:rgba(71,159,250,.1); border:1px solid rgba(71,159,250,.4);
+    color:var(--blue); background:rgba(55,224,160,.1); border:1px solid rgba(55,224,160,.4);
     border-radius:99px; padding:6px 13px; cursor:pointer; transition:.15s}
-  .dispatch:hover{background:rgba(71,159,250,.2); color:#cfe4ff}
+  .dispatch:hover{background:rgba(55,224,160,.2); color:#cfe4ff}
   .board-panel .live{margin-left:0}
   .btbl{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:12.5px}
   .btbl th{text-align:left; color:var(--muted); font-weight:400; padding:10px 16px;
@@ -130,7 +130,7 @@
   .traffic{display:flex; gap:6px}
   .traffic i{width:10px; height:10px; border-radius:50%; background:var(--surface-2);
     display:block; border:1px solid var(--border)}
-  .ptitle{font-family:var(--mono); font-size:12px; color:var(--muted-2); letter-spacing:.02em}
+  .ptitle{font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:.14em; text-transform:uppercase}
   .live{margin-left:auto; display:flex; align-items:center; gap:7px; font-family:var(--mono);
     font-size:11px; color:var(--muted)}
   .live .pulse{width:7px; height:7px; border-radius:50%; background:var(--muted)}
@@ -150,8 +150,8 @@
   .log .think:first-child{border-top:0; margin-top:0; padding-top:0}
   .log .tool{color:var(--blue); font-weight:500; margin-top:3px}
   .log .tool::before{content:'▶ '; opacity:.75}
-  .log .res{color:var(--muted); padding:3px 0 3px 12px; border-left:2px solid rgba(71,159,250,.25);
-    margin:2px 0 2px 4px; background:rgba(71,159,250,.03); border-radius:0 4px 4px 0}
+  .log .res{color:var(--muted); padding:3px 0 3px 12px; border-left:2px solid rgba(55,224,160,.25);
+    margin:2px 0 2px 4px; background:rgba(55,224,160,.03); border-radius:0 4px 4px 0}
   .log .head{color:var(--text); font-weight:600}
   .log .dim{color:#3a3d42}
   .log .empty{color:var(--muted); font-style:normal}
@@ -209,7 +209,7 @@
   .flag .d{width:6px;height:6px;border-radius:50%;background:currentColor}
   .flag.mixer{color:var(--red); border-color:rgba(226,71,86,.4)}
   .flag.mint,.flag.burn{color:var(--amber); border-color:rgba(255,161,108,.4)}
-  .flag.dex,.flag.exchange{color:var(--blue); border-color:rgba(71,159,250,.4)}
+  .flag.dex,.flag.exchange{color:var(--blue); border-color:rgba(55,224,160,.4)}
   #graph{position:relative; height:440px}
   #graph svg{display:block}
   .gempty{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
@@ -486,8 +486,8 @@ function renderActivity(){
     bars+=`<text x="${(x+w/2).toFixed(1)}" y="${H-8}" text-anchor="middle" fill="#5b5e66" font-size="10.5" font-family="ui-monospace,monospace">${d[0]}</text>`;});
   const el=document.getElementById('act');
   if(el) el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}"><defs>`
-    +`<linearGradient id="actg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4d9fff" stop-opacity=".72"/>`
-    +`<stop offset="1" stop-color="#4d9fff" stop-opacity=".72"/></linearGradient>`
+    +`<linearGradient id="actg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#37e0a0" stop-opacity=".72"/>`
+    +`<stop offset="1" stop-color="#37e0a0" stop-opacity=".72"/></linearGradient>`
     +`<pattern id="dith" width="4" height="4" patternUnits="userSpaceOnUse">`
     +`<circle cx="1" cy="1" r="0.9" fill="#0a0c11" opacity="0.5"/>`
     +`<circle cx="3" cy="3" r="0.9" fill="#0a0c11" opacity="0.5"/></pattern></defs>${bars}</svg>`;
@@ -565,7 +565,7 @@ function animateCampaign(o, members, el){
   function frame(now){
     const t=Math.min(1,(now-t0)/DUR), e=ease3(t);
     let s=`<svg viewBox="0 0 ${W} ${H}">`;
-    s+=`<circle cx="${cx}" cy="${cy}" r="${(e*235).toFixed(1)}" fill="none" stroke="#479ffa" stroke-width="1.5" opacity="${((1-t)*0.35).toFixed(2)}"/>`;
+    s+=`<circle cx="${cx}" cy="${cy}" r="${(e*235).toFixed(1)}" fill="none" stroke="#37e0a0" stroke-width="1.5" opacity="${((1-t)*0.35).toFixed(2)}"/>`;
     nodes.forEach((n,i)=>{const lp=Math.max(0,Math.min(1,(t-(i/N)*0.4)/0.5)); if(lp<=0)return;
       const nx=cx+(n.x-cx)*ease3(lp), ny=cy+(n.y-cy)*ease3(lp), col=n.rug?'#e24756':'#3a3d42';
       s+=`<line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="${col}" stroke-width="0.7" opacity="${(lp*(n.rug?0.55:0.18)).toFixed(2)}"/>`;});
@@ -684,8 +684,8 @@ function renderVerdict(ev){
     +'<div class="vcard">'+md(body)+'</div>';
 }
 
-const GCOL={mint:'#ffa16c',burn:'#868f97',mixer:'#e24756',dex:'#479ffa',
-  exchange:'#479ffa',whale:'#e24756',wallet:'#5b5e66'};
+const GCOL={mint:'#ffa16c',burn:'#868f97',mixer:'#e24756',dex:'#37e0a0',
+  exchange:'#37e0a0',whale:'#e24756',wallet:'#5b5e66'};
 const GLABEL={mint:'Mint / burn',mixer:'Known mixer',dex:'DEX router',
   exchange:'Exchange',whale:'Concentration',wallet:'Wallet'};
 
