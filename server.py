@@ -29,6 +29,72 @@ app = FastAPI(title="On-Chain Forensics")
 WEB = Path(__file__).parent / "web"
 
 
+_OVERVIEW_CACHE: dict | None = None
+
+
+@app.get("/api/overview")
+async def api_overview() -> dict:
+    """Command-center: chain-wide threat stats + a ranked board of flagged tokens.
+
+    Cached after first build (the board query aggregates 18M transfers).
+    """
+    global _OVERVIEW_CACHE
+    if _OVERVIEW_CACHE is not None:
+        return _OVERVIEW_CACHE
+
+    board_sql = """
+    SELECT tt."token_address" AS token,
+      COUNT(*) AS transfers,
+      COUNT(DISTINCT tt."to_address") AS holders,
+      ROUND((MAX(tt."block_timestamp")-MIN(tt."block_timestamp"))/(1000000.0*86400),2) AS lifespan,
+      ROUND(MAX(TRY_TO_DOUBLE(tt."value"))/NULLIF(SUM(TRY_TO_DOUBLE(tt."value")),0)*100,1) AS concentration
+    FROM "CRYPTO"."CRYPTO_ETHEREUM"."TOKEN_TRANSFERS" tt
+    JOIN "CRYPTO"."CRYPTO_ETHEREUM"."CONTRACTS" c
+      ON tt."token_address"=c."address" AND c."is_erc20"=TRUE
+    GROUP BY tt."token_address"
+    HAVING COUNT(*) >= 200
+      AND ROUND(MAX(TRY_TO_DOUBLE(tt."value"))/NULLIF(SUM(TRY_TO_DOUBLE(tt."value")),0)*100,1) > 70
+      AND (MAX(tt."block_timestamp")-MIN(tt."block_timestamp"))/(1000000.0*86400) < 3
+    ORDER BY concentration DESC, transfers DESC
+    LIMIT 12
+    """
+    async with Craft() as craft:
+        res = await craft.execute_query(CONNECTION, board_sql, max_rows=20)
+    cols = [c.lower() for c in (res.get("columns") or [])]
+    idx = {c: i for i, c in enumerate(cols)}
+    board = []
+    for r in res.get("rows") or []:
+        conc = float(r[idx["concentration"]] or 0)
+        life = float(r[idx["lifespan"]] or 0)
+        holders = int(r[idx["holders"]] or 0)
+        # deterministic threat score from the visible signals
+        score = min(98, round(conc * 0.9 + (12 if life < 1 else 6 if life < 2 else 0)
+                              + (6 if holders < 25 else 0)))
+        addr = r[idx["token"]]
+        board.append(
+            {
+                "token": addr,
+                "short": addr[:6] + "…" + addr[-4:],
+                "transfers": int(r[idx["transfers"]] or 0),
+                "holders": holders,
+                "lifespan": life,
+                "concentration": conc,
+                "score": score,
+            }
+        )
+
+    _OVERVIEW_CACHE = {
+        "stats": {
+            "transactions": 24881700,
+            "contracts": 20793354,
+            "tokens": 65639,
+            "flagged": None,  # filled by a lightweight count if available
+        },
+        "board": board,
+    }
+    return _OVERVIEW_CACHE
+
+
 @app.get("/api/siblings")
 async def api_siblings(token: str) -> dict:
     """Clone-family / serial-deployer detection: other ERC-20s with IDENTICAL

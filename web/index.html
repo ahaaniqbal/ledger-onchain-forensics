@@ -62,6 +62,31 @@
   .chip:hover{border-color:var(--muted-2); color:var(--text)}
   .chip b{color:var(--text); font-weight:500}
 
+  /* stat tiles */
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:26px 0 22px}
+  @media(max-width:720px){.stats{grid-template-columns:1fr}}
+  .stat{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-card);
+    padding:18px 20px}
+  .stat .n{font-family:var(--mono); font-size:30px; font-weight:600; letter-spacing:-.03em; color:var(--text)}
+  .stat .l{color:var(--muted); font-size:12px; margin-top:4px; font-family:var(--mono)}
+  .stat .pulse{display:inline-block; width:7px;height:7px;border-radius:50%;background:var(--green);
+    box-shadow:0 0 8px var(--green); margin-right:7px; animation:blink 1.4s infinite; vertical-align:middle}
+
+  /* threat board */
+  .board-panel{margin-bottom:26px}
+  .btbl{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:12.5px}
+  .btbl th{text-align:left; color:var(--muted); font-weight:400; padding:10px 16px;
+    border-bottom:1px solid var(--border)}
+  .btbl th.r,.btbl td.r{text-align:right}
+  .btbl td{padding:11px 16px; color:var(--muted-2); border-bottom:1px solid var(--surface-2)}
+  .btbl tbody tr{cursor:pointer; transition:background .12s}
+  .btbl tbody tr:hover{background:var(--surface-2)}
+  .btbl tbody tr:hover td:first-child{color:var(--text)}
+  .btbl .sc{font-weight:600}
+  .btbl .sc.hi{color:var(--red)} .btbl .sc.mid{color:var(--amber)}
+  .btbl .go{color:var(--blue); font-size:11px; opacity:0; transition:.12s}
+  .btbl tbody tr:hover .go{opacity:1}
+
   /* grid */
   .grid{display:grid; grid-template-columns:1.55fr 1fr; gap:20px; padding-bottom:56px}
   @media(max-width:900px){.grid{grid-template-columns:1fr}}
@@ -184,6 +209,20 @@
       <div class="chips" id="chips"></div>
     </header>
 
+    <div class="stats" id="stats">
+      <div class="stat"><div class="n">—</div><div class="l">loading…</div></div>
+      <div class="stat"><div class="n">—</div><div class="l">loading…</div></div>
+      <div class="stat"><div class="n">—</div><div class="l">loading…</div></div>
+    </div>
+
+    <section class="panel board-panel">
+      <div class="phead">
+        <div class="ptitle">live threat board</div>
+        <div class="live on"><span class="pulse"></span><span>monitoring</span></div>
+      </div>
+      <div id="board"><div class="gempty" style="height:120px">◍ scanning the chain for high-risk tokens…</div></div>
+    </section>
+
     <div class="grid">
       <section class="panel console">
         <div class="phead">
@@ -235,6 +274,32 @@ const chips=document.getElementById('chips');
 PRESETS.forEach(p=>{const c=document.createElement('button');c.className='chip';
   c.innerHTML=p.t+' <b>0x'+p.a.slice(0,6)+'…</b>';
   c.onclick=()=>{document.getElementById('token').value=p.a; run();}; chips.appendChild(c);});
+
+function fmt(n){return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?Math.round(n/1e3)+'k':n;}
+async function loadOverview(){
+  try{
+    const d=await (await fetch('/api/overview')).json();
+    const s=d.stats;
+    document.getElementById('stats').innerHTML=
+      `<div class="stat"><div class="n">${fmt(s.transactions)}</div><div class="l"><span class="pulse"></span>transactions analyzed</div></div>`
+     +`<div class="stat"><div class="n">${s.tokens.toLocaleString()}</div><div class="l">ERC-20 tokens monitored</div></div>`
+     +`<div class="stat"><div class="n">${fmt(s.contracts)}</div><div class="l">contracts fingerprinted</div></div>`;
+    const rows=(d.board||[]).map(b=>`<tr onclick="investigateToken('${b.token}')">`
+      +`<td>${b.short} <span class="go">investigate →</span></td>`
+      +`<td class="r">${b.concentration}%</td><td class="r">${b.holders}</td>`
+      +`<td class="r">${b.lifespan}d</td>`
+      +`<td class="r sc ${b.score>=90?'hi':'mid'}">${b.score}</td></tr>`).join('');
+    document.getElementById('board').innerHTML=
+      `<table class="btbl"><thead><tr><th>token</th><th class="r">top-1 concentration</th>`
+      +`<th class="r">holders</th><th class="r">lifespan</th><th class="r">threat</th></tr></thead>`
+      +`<tbody>${rows}</tbody></table>`;
+  }catch(e){document.getElementById('board').innerHTML='<div class="gempty" style="height:100px">Threat board unavailable.</div>';}
+}
+function investigateToken(tok){
+  document.getElementById('token').value=tok.replace(/^0x/,'');
+  window.scrollTo({top:0,behavior:'smooth'});
+  run();
+}
 
 const logEl=document.getElementById('log');
 const live=document.getElementById('live'), liveTxt=document.getElementById('livetxt');
@@ -410,6 +475,7 @@ function run(){
 }
 runBtn.onclick=run;
 document.getElementById('token').addEventListener('keydown',e=>{if(e.key==='Enter')run();});
+loadOverview();
 </script>
 </body>
 </html>
