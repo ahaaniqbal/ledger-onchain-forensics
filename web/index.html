@@ -43,13 +43,16 @@
   .stack{color:var(--muted); font-size:12px; font-family:var(--mono)}
   .stack b{color:var(--muted-2); font-weight:500}
 
-  /* view nav */
-  .nav{display:flex; gap:6px; margin:16px 0 2px}
-  .nav a{cursor:pointer; font-family:var(--mono); font-size:12.5px; color:var(--muted);
-    padding:8px 15px; border-radius:99px; border:1px solid transparent; transition:.15s; user-select:none}
-  .nav a:hover{color:var(--text)}
-  .nav a.active{color:var(--text); background:var(--surface); border-color:var(--border);
+  /* view nav — segmented tab control */
+  .nav{display:inline-flex; gap:4px; margin:20px 0 26px; padding:4px;
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
     backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px)}
+  .nav a{cursor:pointer; font-family:var(--sans); font-weight:500; font-size:13.5px;
+    color:var(--muted); padding:9px 18px; border-radius:8px; transition:.15s; user-select:none;
+    letter-spacing:-.01em}
+  .nav a:hover{color:var(--text); background:rgba(255,255,255,.03)}
+  .nav a.active{color:#fff; background:rgba(71,159,250,.18);
+    box-shadow:inset 0 0 0 1px rgba(71,159,250,.45)}
 
   /* hero */
   header.hero{padding:26px 0 14px}
@@ -136,6 +139,7 @@
   .live.on .pulse{background:var(--green); box-shadow:0 0 8px var(--green);
     animation:blink 1.2s infinite}
   @keyframes blink{50%{opacity:.35}}
+  @keyframes spin{to{transform:rotate(360deg)}}
 
   /* console body */
   .log{height:520px; overflow:auto; padding:16px; font-family:var(--mono);
@@ -143,9 +147,13 @@
   .log::-webkit-scrollbar{width:10px}
   .log::-webkit-scrollbar-thumb{background:var(--surface-2); border-radius:99px}
   .log .l{padding:1px 0}
-  .log .think{color:var(--muted)}
-  .log .tool{color:var(--blue)}
-  .log .res{color:var(--muted-2)}
+  .log .think{color:var(--muted-2); border-top:1px solid var(--surface-2);
+    margin-top:9px; padding-top:9px}
+  .log .think:first-child{border-top:0; margin-top:0; padding-top:0}
+  .log .tool{color:var(--blue); font-weight:500; margin-top:3px}
+  .log .tool::before{content:'▶ '; opacity:.75}
+  .log .res{color:var(--muted); padding:3px 0 3px 12px; border-left:2px solid rgba(71,159,250,.25);
+    margin:2px 0 2px 4px; background:rgba(71,159,250,.03); border-radius:0 4px 4px 0}
   .log .head{color:var(--text); font-weight:600}
   .log .dim{color:#3a3d42}
   .log .empty{color:var(--muted); font-style:normal}
@@ -334,10 +342,16 @@
       <section class="panel verdict">
         <div class="phead"><div class="ptitle">verdict</div></div>
         <div class="vbody" id="vbody">
-          <div class="vempty"><div class="big">🕵️</div>Run an investigation to see the verdict, risk score, and detection rule.</div>
+          <div class="vempty"><div class="big">🕵️</div>The verdict lands here — <b style="color:var(--text)">RUG / SUSPICIOUS / LEGIT</b>, a risk gauge, the evidence, and a shippable detection rule — once the agent finishes its investigation.</div>
         </div>
       </section>
     </div>
+
+    <section class="panel" id="lifePanel" style="display:none; margin-bottom:20px">
+      <div class="phead"><div class="ptitle">token lifecycle · activity over time</div>
+        <div class="live"><span class="yr">pump → collapse</span></div></div>
+      <div id="lifechart"></div>
+    </section>
 
     <section class="panel ring-panel" id="ringPanel" style="display:none">
       <div class="phead">
@@ -678,6 +692,42 @@ const GCOL={mint:'#ffa16c',burn:'#868f97',mixer:'#e24756',dex:'#479ffa',
 const GLABEL={mint:'Mint / burn',mixer:'Known mixer',dex:'DEX router',
   exchange:'Exchange',whale:'Concentration',wallet:'Wallet'};
 
+async function loadLifecycle(tok){
+  const panel=document.getElementById('lifePanel'), el=document.getElementById('lifechart');
+  panel.style.display='';
+  el.innerHTML='<div class="gempty" style="height:200px">◍ reconstructing token lifecycle from transfers…</div>';
+  try{
+    const d=await (await fetch('/api/timeline?token='+encodeURIComponent(tok))).json();
+    renderLifecycle(d, el);
+  }catch(e){ el.innerHTML='<div class="gempty" style="height:180px">Lifecycle unavailable.</div>'; }
+}
+function renderLifecycle(d, el){
+  const B=d.buckets||[];
+  if(!B.length){ el.innerHTML='<div class="gempty" style="height:180px">No transfer activity.</div>'; return; }
+  const W=1180,H=230,padB=34,padT=28,N=B.length;
+  const maxT=Math.max(...B.map(b=>b.transfers),1);
+  const X=i=> N===1?W/2:(i/(N-1))*(W-20)+10;
+  const Y=v=> H-padB-(v/maxT)*(H-padB-padT);
+  let area=`M ${X(0).toFixed(1)} ${H-padB}`, line='';
+  B.forEach((b,i)=>{ area+=` L ${X(i).toFixed(1)} ${Y(b.transfers).toFixed(1)}`;
+    line+=(i?' L':'M')+' '+X(i).toFixed(1)+' '+Y(b.transfers).toFixed(1); });
+  area+=` L ${X(N-1).toFixed(1)} ${H-padB} Z`;
+  const MC={mint:'#ffa16c',peak:'#e24756',collapse:'#e24756'};
+  let mk='';
+  (d.markers||[]).forEach(m=>{ const x=X(m.i), c=MC[m.kind]||'#e24756';
+    mk+=`<line x1="${x.toFixed(1)}" y1="${padT-8}" x2="${x.toFixed(1)}" y2="${H-padB}" stroke="${c}" stroke-width="1" stroke-dasharray="3 3" opacity="0.75"/>`;
+    mk+=`<circle cx="${x.toFixed(1)}" cy="${(padT-8).toFixed(1)}" r="3" fill="${c}"/>`;
+    const end = m.i > N*0.6;
+    mk+=`<text x="${(x+(end?-6:6)).toFixed(1)}" y="${(padT+3).toFixed(1)}" text-anchor="${end?'end':'start'}" fill="${c}" font-size="10.5" font-family="ui-monospace,monospace">${m.label}</text>`;
+  });
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}"><defs>`
+    +`<linearGradient id="lifg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e24756" stop-opacity=".35"/><stop offset="1" stop-color="#e24756" stop-opacity="0"/></linearGradient></defs>`
+    +`<path d="${area}" fill="url(#lifg)"/><path d="${line}" fill="none" stroke="#e24756" stroke-width="1.6"/>${mk}`
+    +`<text x="10" y="${H-11}" fill="#5b5e66" font-size="10.5" font-family="ui-monospace,monospace">${B[0].t}</text>`
+    +`<text x="${W-10}" y="${H-11}" text-anchor="end" fill="#5b5e66" font-size="10.5" font-family="ui-monospace,monospace">${B[N-1].t}</text></svg>`
+    +`<div style="padding:2px 16px 13px;color:var(--muted);font-family:var(--mono);font-size:11.5px">Transfer activity spikes at deploy, then collapses to zero — the classic pump-and-abandon rug shape. Red markers flag the fraud events.</div>`;
+}
+
 async function loadSiblings(tok){
   const panel=document.getElementById('ringPanel');
   const body=document.getElementById('ring'), flag=document.getElementById('ringFlag');
@@ -768,12 +818,14 @@ function run(){
   const tok='0x'+document.getElementById('token').value.replace(/^0x/,'').trim();
   showView('investigation');
   logEl.innerHTML=''; steps=0;
+  loadLifecycle(tok);
   loadSiblings(tok);
   loadGraph(tok);
   addLog('› target '+tok); addLog('› connecting to CRAFT…'); addLog('');
   live.classList.add('on'); liveTxt.textContent='investigating';
   runBtn.disabled=true; runBtn.textContent='Investigating…';
-  vbody.innerHTML='<div class="vempty"><div class="big">◍</div>Agent is investigating through CRAFT…</div>';
+  vbody.innerHTML='<div class="vempty"><div class="big" style="display:inline-block;animation:spin 1.4s linear infinite">◍</div>'
+    +'Agent investigating through CRAFT…<br><span style="font-size:11px;opacity:.75">multi-step reasoning · ~60–90s · watch the log stream →</span></div>';
   es=new EventSource('/api/investigate?token='+encodeURIComponent(tok));
   es.onmessage=e=>{
     const ev=JSON.parse(e.data);
@@ -847,6 +899,22 @@ renderActivity();
     gl.drawArrays(gl.TRIANGLES,0,3); requestAnimationFrame(frame);}
   frame();
 })();
+</script>
+<!-- Agentation: annotate the live UI, agent picks up feedback (dev only) -->
+<script type="module">
+  try {
+    const [{ default: React }, { createRoot }, mod] = await Promise.all([
+      import('https://esm.sh/react@19.2.7'),
+      import('https://esm.sh/react-dom@19.2.7/client'),
+      import('https://esm.sh/agentation@3.0.2?deps=react@19.2.7,react-dom@19.2.7')
+    ]);
+    const Agentation = mod.Agentation || mod.default;
+    const host = document.createElement('div');
+    host.id = 'agentation-root';
+    document.body.appendChild(host);
+    createRoot(host).render(React.createElement(Agentation, { endpoint: 'http://localhost:4747' }));
+    console.log('[agentation] toolbar mounted');
+  } catch (e) { console.warn('[agentation] failed to load', e); }
 </script>
 </body>
 </html>

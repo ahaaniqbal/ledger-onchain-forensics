@@ -342,6 +342,51 @@ async def api_siblings(token: str) -> dict:
     }
 
 
+@app.get("/api/timeline")
+async def api_timeline(token: str) -> dict:
+    """Token activity lifecycle: transfer volume/count bucketed over the token's
+    active life, with fraud-event markers (mint, distribution peak, collapse).
+    Visualizes the pump-then-collapse rug shape. Pure CRAFT."""
+    tok = token.strip().lower()
+    sql = f"""
+    WITH tt AS (
+      SELECT "block_timestamp" AS ts, TRY_TO_DOUBLE("value") AS val,
+             LOWER("from_address") AS frm, LOWER("to_address") AS dst
+      FROM "CRYPTO"."CRYPTO_ETHEREUM"."TOKEN_TRANSFERS"
+      WHERE LOWER("token_address") = '{tok}'
+    ),
+    b AS (SELECT MIN(ts) AS mn, MAX(ts) AS mx FROM tt),
+    w AS (SELECT mn, GREATEST(1, (mx-mn)/40.0) AS width FROM b)
+    SELECT FLOOR((tt.ts-(SELECT mn FROM w))/(SELECT width FROM w)) AS bucket,
+      COUNT(*) AS transfers, SUM(tt.val) AS volume,
+      COUNT(DISTINCT tt.dst) AS receivers,
+      TO_VARCHAR(TO_TIMESTAMP(MIN(tt.ts)/1000000),'YYYY-MM-DD HH24:MI') AS t
+    FROM tt GROUP BY bucket ORDER BY bucket
+    """
+    async with Craft() as craft:
+        res = await craft.execute_query(CONNECTION, sql, max_rows=60)
+    cols = [c.lower() for c in (res.get("columns") or [])]
+    idx = {c: i for i, c in enumerate(cols)}
+    buckets = []
+    for r in res.get("rows") or []:
+        buckets.append({
+            "i": int(float(r[idx["bucket"]] or 0)),
+            "transfers": int(r[idx["transfers"]] or 0),
+            "volume": float(r[idx["volume"]] or 0),
+            "receivers": int(r[idx["receivers"]] or 0),
+            "t": r[idx["t"]],
+        })
+    markers = []
+    if buckets:
+        peak = max(range(len(buckets)), key=lambda i: buckets[i]["transfers"])
+        markers.append({"i": 0, "kind": "mint", "label": "Deploy · supply minted"})
+        if peak != 0:
+            markers.append({"i": peak, "kind": "peak", "label": "Distribution burst"})
+        markers.append({"i": len(buckets) - 1, "kind": "collapse",
+                        "label": "Activity collapse · rug"})
+    return {"token": tok, "buckets": buckets, "markers": markers}
+
+
 @app.get("/api/graph")
 async def api_graph(token: str, limit: int = 60) -> dict:
     """Token transfer network: nodes (addresses, role-labelled) + edges (transfers).
