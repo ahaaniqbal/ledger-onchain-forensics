@@ -6,38 +6,36 @@
 <title>Quorum — On-Chain Threat Intelligence</title>
 <style>
   :root{
-    --bg:#0b0b0b; --surface:rgba(18,20,27,.58); --surface-solid:#12141b; --surface-2:rgba(38,41,52,.6);
-    --border:rgba(90,110,150,.22); --border-soft:rgba(255,255,255,.08);
-    --text:#ffffff; --muted:#868f97; --muted-2:#acadae;
-    --blue:#479ffa; --amber:#ffa16c; --green:#4ebe96; --red:#e24756;
+    --bg:#0a0b0d; --surface:#14171c; --surface-solid:#14171c; --surface-2:#1e222a;
+    --border:#242932; --border-soft:rgba(255,255,255,.06);
+    --text:#f3f5f8; --muted:#7c838d; --muted-2:#a7adb6;
+    --blue:#4d9fff; --amber:#f0a35f; --green:#3ecf8e; --red:#f05d68;
     --sans:-apple-system,"Inter","Segoe UI",system-ui,sans-serif;
     --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,monospace;
-    --r-card:16px; --r-in:8px;
+    --r-card:14px; --r-in:8px;
   }
   *{box-sizing:border-box}
   html,body{margin:0}
-  html{background:#07080b}
+  html{background:#0a0b0d}
   body{
-    background:transparent; color:var(--text); font-family:var(--sans);
+    background:#0a0b0d; color:var(--text); font-family:var(--sans);
     font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; position:relative;
   }
-  /* cinematic interactive shader backdrop */
-  #fx{position:fixed; inset:0; width:100vw; height:100vh; z-index:0; display:block; pointer-events:none}
-  /* faint engineered grid over the shader */
+  /* faint engineered grid — observatory structure, no gradients */
   body::after{content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
     background-image:
-      linear-gradient(rgba(120,170,255,.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(120,170,255,.03) 1px, transparent 1px);
-    background-size:48px 48px;
-    -webkit-mask-image:radial-gradient(circle at 50% 4%, #000, transparent 82%);
-    mask-image:radial-gradient(circle at 50% 4%, #000, transparent 82%);}
+      linear-gradient(rgba(255,255,255,.016) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.016) 1px, transparent 1px);
+    background-size:54px 54px;
+    -webkit-mask-image:radial-gradient(circle at 50% 0%, #000, transparent 72%);
+    mask-image:radial-gradient(circle at 50% 0%, #000, transparent 72%);}
   .wrap{max-width:1220px; margin:0 auto; padding:0 24px; position:relative; z-index:1}
 
   /* top bar */
   .topbar{display:flex; align-items:center; justify-content:space-between;
     height:56px; border-bottom:1px solid var(--border)}
   .brand{display:flex; align-items:center; gap:10px; font-weight:600; letter-spacing:-.02em}
-  .brand .mark{color:var(--blue); filter:drop-shadow(0 0 7px rgba(71,159,250,.55))}
+  .brand .mark{color:var(--text)}
   .brand .bname{font-size:17px; letter-spacing:-.01em}
   .brand small{color:var(--muted); font-weight:400; margin-left:2px}
   .stack{color:var(--muted); font-size:12px; font-family:var(--mono)}
@@ -115,7 +113,7 @@
   .btbl tbody tr:hover .go{opacity:1}
   .ccell{display:flex; align-items:center; gap:10px}
   .cbar{flex:0 0 110px; height:5px; background:var(--surface-2); border-radius:99px; overflow:hidden}
-  .cbar i{display:block; height:100%; background:linear-gradient(90deg,var(--amber),var(--red)); border-radius:99px}
+  .cbar i{display:block; height:100%; background:var(--red); border-radius:99px}
   .act-panel{margin-bottom:20px}
   #act{padding:14px 12px 6px}
   .yr{color:var(--muted); font-family:var(--mono); font-size:11px}
@@ -126,7 +124,7 @@
 
   .panel{background:var(--surface); border:1px solid var(--border);
     border-radius:var(--r-card); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px)}
-  .panel.console{box-shadow:rgba(0,0,0,.55) 0 0 44px 0}
+  .panel.console{box-shadow:none}
   .phead{display:flex; align-items:center; gap:10px; padding:13px 16px;
     border-bottom:1px solid var(--border)}
   .traffic{display:flex; gap:6px}
@@ -270,7 +268,6 @@
 </style>
 </head>
 <body>
-  <canvas id="fx"></canvas>
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
@@ -489,8 +486,8 @@ function renderActivity(){
     bars+=`<text x="${(x+w/2).toFixed(1)}" y="${H-8}" text-anchor="middle" fill="#5b5e66" font-size="10.5" font-family="ui-monospace,monospace">${d[0]}</text>`;});
   const el=document.getElementById('act');
   if(el) el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}"><defs>`
-    +`<linearGradient id="actg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5aa8ff" stop-opacity=".95"/>`
-    +`<stop offset="1" stop-color="#479ffa" stop-opacity=".2"/></linearGradient>`
+    +`<linearGradient id="actg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4d9fff" stop-opacity=".72"/>`
+    +`<stop offset="1" stop-color="#4d9fff" stop-opacity=".72"/></linearGradient>`
     +`<pattern id="dith" width="4" height="4" patternUnits="userSpaceOnUse">`
     +`<circle cx="1" cy="1" r="0.9" fill="#0a0c11" opacity="0.5"/>`
     +`<circle cx="3" cy="3" r="0.9" fill="#0a0c11" opacity="0.5"/></pattern></defs>${bars}</svg>`;
@@ -721,8 +718,8 @@ function renderLifecycle(d, el){
     mk+=`<text x="${(x+(end?-6:6)).toFixed(1)}" y="${(padT+3).toFixed(1)}" text-anchor="${end?'end':'start'}" fill="${c}" font-size="10.5" font-family="ui-monospace,monospace">${m.label}</text>`;
   });
   el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}"><defs>`
-    +`<linearGradient id="lifg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e24756" stop-opacity=".35"/><stop offset="1" stop-color="#e24756" stop-opacity="0"/></linearGradient></defs>`
-    +`<path d="${area}" fill="url(#lifg)"/><path d="${line}" fill="none" stroke="#e24756" stroke-width="1.6"/>${mk}`
+    +`<linearGradient id="lifg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f05d68" stop-opacity=".1"/><stop offset="1" stop-color="#f05d68" stop-opacity=".1"/></linearGradient></defs>`
+    +`<path d="${area}" fill="url(#lifg)"/><path d="${line}" fill="none" stroke="#f05d68" stroke-width="1.6"/>${mk}`
     +`<text x="10" y="${H-11}" fill="#5b5e66" font-size="10.5" font-family="ui-monospace,monospace">${B[0].t}</text>`
     +`<text x="${W-10}" y="${H-11}" text-anchor="end" fill="#5b5e66" font-size="10.5" font-family="ui-monospace,monospace">${B[N-1].t}</text></svg>`
     +`<div style="padding:2px 16px 13px;color:var(--muted);font-family:var(--mono);font-size:11.5px">Transfer activity spikes at deploy, then collapses to zero — the classic pump-and-abandon rug shape. Red markers flag the fraud events.</div>`;
@@ -846,6 +843,7 @@ renderActivity();
 /* ---- interactive WebGL shader backdrop (Palantir-grade, no libraries) ---- */
 (function(){
   const cv=document.getElementById('fx');
+  if(!cv) return;  // shader removed for Fey/Hyperliquid flat aesthetic
   const gl=cv.getContext('webgl')||cv.getContext('experimental-webgl');
   if(!gl){cv.style.display='none';return;}
   const VS='attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
