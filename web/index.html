@@ -93,6 +93,11 @@
 
   /* threat board */
   .board-panel{margin-bottom:26px}
+  .dispatch{margin-left:auto; margin-right:12px; font-family:var(--mono); font-size:11.5px;
+    color:var(--blue); background:rgba(71,159,250,.1); border:1px solid rgba(71,159,250,.4);
+    border-radius:99px; padding:6px 13px; cursor:pointer; transition:.15s}
+  .dispatch:hover{background:rgba(71,159,250,.2); color:#cfe4ff}
+  .board-panel .live{margin-left:0}
   .btbl{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:12.5px}
   .btbl th{text-align:left; color:var(--muted); font-weight:400; padding:10px 16px;
     border-bottom:1px solid var(--border)}
@@ -268,11 +273,11 @@
     </div>
 
     <header class="hero">
-      <p class="kicker">Autonomous scam-token investigator</p>
-      <h1>Is this token a rug?</h1>
-      <p class="sub">Paste an Ethereum ERC-20. An AI agent reasons, writes its own SQL through
-        CRAFT, digs through 25M real transactions, and returns a verdict — plus a detection
-        rule you can ship.</p>
+      <p class="kicker">Autonomous Web3 threat-detection agent</p>
+      <h1>Quorum finds the scams. On its own.</h1>
+      <p class="sub">An autonomous agent continuously triages every token on Ethereum, dispatches
+        itself to the threats, maps the operators behind them, and blocks them across wallets and
+        exchanges — before anyone gets hurt. The box below is just the analyst override.</p>
 
       <div class="cmd">
         <label class="field">
@@ -307,8 +312,9 @@
 
     <section class="panel board-panel">
       <div class="phead">
-        <div class="ptitle">live threat board</div>
-        <div class="live on"><span class="pulse"></span><span>monitoring</span></div>
+        <div class="ptitle">autonomous threat feed</div>
+        <button class="dispatch" onclick="autoDispatch()">⚡ Dispatch agent → #1 threat</button>
+        <div class="live on"><span class="pulse"></span><span>agent on duty</span></div>
       </div>
       <div id="board"><div class="gempty" style="height:120px">◍ scanning the chain for high-risk tokens…</div></div>
     </section>
@@ -475,9 +481,18 @@ function renderActivity(){
     +`<circle cx="1" cy="1" r="0.9" fill="#0a0c11" opacity="0.5"/>`
     +`<circle cx="3" cy="3" r="0.9" fill="#0a0c11" opacity="0.5"/></pattern></defs>${bars}</svg>`;
 }
+let OVERVIEW=null;
+function autoDispatch(){
+  const b = OVERVIEW && OVERVIEW.board && OVERVIEW.board[0];
+  if(!b) return;
+  document.getElementById('token').value = b.token.replace(/^0x/,'');
+  window.scrollTo({top:0,behavior:'smooth'});
+  run(); // run() auto-switches to Investigation and dispatches the agent
+}
 async function loadOverview(){
   try{
     const d=await (await fetch('/api/overview')).json();
+    OVERVIEW=d;
     const s=d.stats;
     document.getElementById('stats').innerHTML=
       `<div class="stat"><div class="n">${fmt(s.transactions)}</div><div class="l"><span class="pulse"></span>transactions analyzed</div></div>`
