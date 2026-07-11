@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ledger — On-Chain Forensics</title>
+<style>
+  :root{
+    --bg:#0b0b0b; --surface:#131313; --surface-2:#191919;
+    --border:#26272d; --border-soft:rgba(255,255,255,.08);
+    --text:#ffffff; --muted:#868f97; --muted-2:#acadae;
+    --blue:#479ffa; --amber:#ffa16c; --green:#4ebe96; --red:#e24756;
+    --sans:-apple-system,"Inter","Segoe UI",system-ui,sans-serif;
+    --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,monospace;
+    --r-card:16px; --r-in:8px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg); color:var(--text); font-family:var(--sans);
+    font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(1200px 500px at 50% -10%, rgba(71,159,250,.06), transparent 70%);
+  }
+  .wrap{max-width:1220px; margin:0 auto; padding:0 24px}
+
+  /* top bar */
+  .topbar{display:flex; align-items:center; justify-content:space-between;
+    height:56px; border-bottom:1px solid var(--border)}
+  .brand{display:flex; align-items:center; gap:9px; font-weight:600; letter-spacing:-.02em}
+  .brand .dot{width:9px; height:9px; border-radius:50%; background:var(--blue);
+    box-shadow:0 0 10px var(--blue)}
+  .brand small{color:var(--muted); font-weight:400}
+  .stack{color:var(--muted); font-size:12px; font-family:var(--mono)}
+  .stack b{color:var(--muted-2); font-weight:500}
+
+  /* hero */
+  header.hero{padding:44px 0 24px}
+  .kicker{font-family:var(--mono); font-size:11px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--blue); margin:0 0 12px}
+  h1{font-size:44px; line-height:1.02; letter-spacing:-.03em; margin:0 0 12px;
+    font-weight:600; text-wrap:balance}
+  .sub{color:var(--muted); font-size:16px; max-width:640px; margin:0}
+
+  /* command bar */
+  .cmd{display:flex; gap:10px; margin:24px 0 14px; flex-wrap:wrap}
+  .field{flex:1 1 420px; display:flex; align-items:center; gap:10px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--r-in); padding:0 14px; height:46px}
+  .field:focus-within{border-color:var(--blue)}
+  .field span{color:var(--muted); font-family:var(--mono); font-size:12px}
+  .field input{flex:1; background:transparent; border:0; outline:0; color:var(--text);
+    font-family:var(--mono); font-size:13.5px; letter-spacing:-.01em}
+  button.run{height:46px; padding:0 22px; border:0; border-radius:99px;
+    background:var(--text); color:#000; font-weight:600; font-size:14px; cursor:pointer;
+    font-family:var(--sans); transition:opacity .15s}
+  button.run:hover{opacity:.9}
+  button.run:disabled{opacity:.5; cursor:default}
+  .chips{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:28px}
+  .chip{font-family:var(--mono); font-size:12px; color:var(--muted-2);
+    background:transparent; border:1px solid var(--border); border-radius:99px;
+    padding:6px 12px; cursor:pointer; transition:.15s}
+  .chip:hover{border-color:var(--muted-2); color:var(--text)}
+  .chip b{color:var(--text); font-weight:500}
+
+  /* grid */
+  .grid{display:grid; grid-template-columns:1.55fr 1fr; gap:20px; padding-bottom:56px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+  .panel{background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--r-card)}
+  .panel.console{box-shadow:rgba(0,0,0,.8) 0 0 44px 0}
+  .phead{display:flex; align-items:center; gap:10px; padding:13px 16px;
+    border-bottom:1px solid var(--border)}
+  .traffic{display:flex; gap:6px}
+  .traffic i{width:10px; height:10px; border-radius:50%; background:var(--surface-2);
+    display:block; border:1px solid var(--border)}
+  .ptitle{font-family:var(--mono); font-size:12px; color:var(--muted-2); letter-spacing:.02em}
+  .live{margin-left:auto; display:flex; align-items:center; gap:7px; font-family:var(--mono);
+    font-size:11px; color:var(--muted)}
+  .live .pulse{width:7px; height:7px; border-radius:50%; background:var(--muted)}
+  .live.on .pulse{background:var(--green); box-shadow:0 0 8px var(--green);
+    animation:blink 1.2s infinite}
+  @keyframes blink{50%{opacity:.35}}
+
+  /* console body */
+  .log{height:520px; overflow:auto; padding:16px; font-family:var(--mono);
+    font-size:12.5px; line-height:1.65; white-space:pre-wrap; word-break:break-word}
+  .log::-webkit-scrollbar{width:10px}
+  .log::-webkit-scrollbar-thumb{background:var(--surface-2); border-radius:99px}
+  .log .l{padding:1px 0}
+  .log .think{color:var(--muted)}
+  .log .tool{color:var(--blue)}
+  .log .res{color:var(--muted-2)}
+  .log .head{color:var(--text); font-weight:600}
+  .log .dim{color:#3a3d42}
+  .log .empty{color:var(--muted); font-style:normal}
+
+  /* verdict */
+  .verdict{min-height:520px; display:flex; flex-direction:column}
+  .vbody{padding:18px 20px; flex:1; display:flex; flex-direction:column; gap:16px}
+  .vempty{margin:auto; text-align:center; color:var(--muted); font-size:13px; max-width:220px}
+  .vempty .big{font-size:26px; margin-bottom:8px; opacity:.5}
+  .badge{display:inline-flex; align-items:center; gap:8px; align-self:flex-start;
+    font-family:var(--mono); font-size:12px; letter-spacing:.04em; text-transform:uppercase;
+    padding:7px 12px; border-radius:99px; border:1px solid}
+  .badge.rug{color:var(--red); border-color:rgba(226,71,86,.4); background:rgba(226,71,86,.08)}
+  .badge.legit{color:var(--green); border-color:rgba(78,190,150,.4); background:rgba(78,190,150,.08)}
+  .badge.susp{color:var(--amber); border-color:rgba(255,161,108,.4); background:rgba(255,161,108,.08)}
+  .badge.unknown{color:var(--muted); border-color:var(--border)}
+  .badge .d{width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
+  .score{display:flex; align-items:baseline; gap:8px}
+  .score .n{font-family:var(--mono); font-size:48px; font-weight:600; letter-spacing:-.04em; line-height:1}
+  .score .d{color:var(--muted); font-family:var(--mono); font-size:14px}
+  .score .lbl{margin-left:auto; color:var(--muted); font-size:11px; font-family:var(--mono);
+    text-transform:uppercase; letter-spacing:.1em}
+  .meter{height:6px; border-radius:99px; background:var(--surface-2); overflow:hidden}
+  .meter i{display:block; height:100%; border-radius:99px; transition:width .8s ease}
+  .vcard{border-top:1px solid var(--border); padding-top:14px; color:var(--muted-2);
+    font-size:13px; line-height:1.6; overflow:auto}
+  .vcard h4{color:var(--text); font-size:12px; font-family:var(--mono); letter-spacing:.06em;
+    text-transform:uppercase; margin:16px 0 6px}
+  .vcard b{color:var(--text); font-weight:600}
+  .vcard code, .vcard .rule{font-family:var(--mono); font-size:12px; color:var(--amber)}
+  .vcard ul{margin:6px 0; padding-left:18px}
+  .vcard li{margin:4px 0}
+
+  /* clone family / ring */
+  .ring-panel{margin-bottom:20px}
+  .ringmsg{padding:15px 16px; font-size:13.5px; line-height:1.6; color:var(--muted-2)}
+  .ringmsg.bad{color:var(--muted-2)}
+  .ringmsg.ok{color:var(--muted)}
+  .ringmsg b{color:var(--text); font-weight:600}
+  .ringtbl{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:12.5px}
+  .ringtbl th{text-align:left; color:var(--muted); font-weight:400; padding:9px 16px;
+    border-top:1px solid var(--border); border-bottom:1px solid var(--border)}
+  .ringtbl td{padding:10px 16px; color:var(--muted-2); border-bottom:1px solid var(--surface-2)}
+  .ringtbl tr.tgt td{color:var(--red); background:rgba(226,71,86,.07)}
+  .ringtbl .tag{color:var(--red); font-size:11px}
+
+  /* graph */
+  .graph-panel{margin-bottom:28px}
+  .flags{display:flex; gap:8px; margin-left:auto; flex-wrap:wrap}
+  .flag{font-family:var(--mono); font-size:11px; padding:4px 9px; border-radius:99px;
+    border:1px solid; display:inline-flex; align-items:center; gap:6px}
+  .flag .d{width:6px;height:6px;border-radius:50%;background:currentColor}
+  .flag.mixer{color:var(--red); border-color:rgba(226,71,86,.4)}
+  .flag.mint,.flag.burn{color:var(--amber); border-color:rgba(255,161,108,.4)}
+  .flag.dex,.flag.exchange{color:var(--blue); border-color:rgba(71,159,250,.4)}
+  #graph{position:relative; height:440px}
+  #graph svg{display:block}
+  .gempty{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:var(--muted); font-family:var(--mono); font-size:13px}
+  .legend{display:flex; gap:16px; flex-wrap:wrap; padding:10px 16px; border-top:1px solid var(--border);
+    font-family:var(--mono); font-size:11px; color:var(--muted)}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  .legend i{width:9px;height:9px;border-radius:50%;display:block}
+
+  footer{border-top:1px solid var(--border); padding:18px 0; color:var(--muted);
+    font-size:12px; font-family:var(--mono); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand"><span class="dot"></span> Ledger <small>/ on-chain forensics</small></div>
+      <div class="stack">powered by <b>Nebius Token Factory</b> × <b>Emergence CRAFT</b></div>
+    </div>
+
+    <header class="hero">
+      <p class="kicker">Autonomous scam-token investigator</p>
+      <h1>Is this token a rug?</h1>
+      <p class="sub">Paste an Ethereum ERC-20. An AI agent reasons, writes its own SQL through
+        CRAFT, digs through 25M real transactions, and returns a verdict — plus a detection
+        rule you can ship.</p>
+
+      <div class="cmd">
+        <label class="field">
+          <span>0x</span>
+          <input id="token" spellcheck="false"
+            value="0008a519b43d1dd0d81e08b4d569c769524e0593" />
+        </label>
+        <button class="run" id="run">Investigate</button>
+      </div>
+      <div class="chips" id="chips"></div>
+    </header>
+
+    <div class="grid">
+      <section class="panel console">
+        <div class="phead">
+          <div class="traffic"><i></i><i></i><i></i></div>
+          <div class="ptitle">investigation.log</div>
+          <div class="live" id="live"><span class="pulse"></span><span id="livetxt">idle</span></div>
+        </div>
+        <div class="log" id="log"><div class="l empty">Awaiting a token. Reasoning, queries, and evidence stream here in real time.</div></div>
+      </section>
+
+      <section class="panel verdict">
+        <div class="phead"><div class="ptitle">verdict</div></div>
+        <div class="vbody" id="vbody">
+          <div class="vempty"><div class="big">🕵️</div>Run an investigation to see the verdict, risk score, and detection rule.</div>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel ring-panel" id="ringPanel" style="display:none">
+      <div class="phead">
+        <div class="ptitle">clone family · serial-deployer check</div>
+        <div class="flags" id="ringFlag"></div>
+      </div>
+      <div id="ring"></div>
+    </section>
+
+    <section class="panel graph-panel">
+      <div class="phead">
+        <div class="ptitle">fund-flow map</div>
+        <div class="flags" id="flags"></div>
+      </div>
+      <div id="graph"><div class="gempty">The token's transfer network renders here — mint, holders, and any known mixer / exchange / DEX counterparties flagged.</div></div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <footer>
+      <span>Data: Spider 2.0 Ethereum sample · 25M txns · read-only Snowflake via CRAFT</span>
+      <span>Signals grounded in AML research (FlowScope, DenseFlow)</span>
+    </footer>
+  </div>
+
+<script>
+const PRESETS=[
+  {t:"🚩 Rug candidate", a:"0008a519b43d1dd0d81e08b4d569c769524e0593"},
+  {t:"✅ Airdrop / legit", a:"47a16e51bcc89c0015622fe83eb482a4522f6c5c"},
+  {t:"🔎 Concentration", a:"53b27466c3fa132f7e81d6399a776c55f21ad480"},
+];
+const chips=document.getElementById('chips');
+PRESETS.forEach(p=>{const c=document.createElement('button');c.className='chip';
+  c.innerHTML=p.t+' <b>0x'+p.a.slice(0,6)+'…</b>';
+  c.onclick=()=>{document.getElementById('token').value=p.a; run();}; chips.appendChild(c);});
+
+const logEl=document.getElementById('log');
+const live=document.getElementById('live'), liveTxt=document.getElementById('livetxt');
+const runBtn=document.getElementById('run'), vbody=document.getElementById('vbody');
+let es=null, steps=0;
+
+function classify(line){
+  const s=line.trim();
+  if(s.startsWith('->')||s.startsWith('->')||/^->/.test(s)||s.includes(' -> ')) return 'tool';
+  if(/^\[step/.test(s)||/thinking:/.test(s)) return 'think';
+  if(/^={5,}/.test(s)||/^INVESTIGATION|^DONE|^model:/.test(s)) return 'dim';
+  if(/VERDICT|RISK SCORE/.test(s)) return 'head';
+  if(s.startsWith('->')) return 'tool';
+  return 'res';
+}
+function addLog(line){
+  const d=document.createElement('div');
+  d.className='l '+classify(line);
+  d.textContent=line||' ';
+  logEl.appendChild(d);
+  logEl.scrollTop=logEl.scrollHeight;
+  if(/^\[step/.test(line.trim())){steps++; liveTxt.textContent='step '+steps;}
+}
+
+// tiny markdown -> html for the verdict card body
+function md(t){
+  const lines=t.split('\n'); let html=''; let inUl=false;
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inl=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`(.+?)`/g,'<code>$1</code>');
+  for(let raw of lines){
+    let s=raw.trim();
+    if(!s){ if(inUl){html+='</ul>';inUl=false;} continue; }
+    if(/^#{1,6}\s/.test(s)){ if(inUl){html+='</ul>';inUl=false;} html+='<h4>'+inl(s.replace(/^#+\s/,''))+'</h4>'; continue;}
+    if(/^([-*•]|\d+\.)\s/.test(s)){ if(!inUl){html+='<ul>';inUl=true;} html+='<li>'+inl(s.replace(/^([-*•]|\d+\.)\s/,''))+'</li>'; continue;}
+    if(/^(VERDICT|RISK SCORE|KEY EVIDENCE|DETECTION RULE|CAVEATS)/i.test(s)){ if(inUl){html+='</ul>';inUl=false;} html+='<h4>'+inl(s)+'</h4>'; continue;}
+    if(inUl){html+='</ul>';inUl=false;}
+    html+='<p style="margin:6px 0">'+inl(s)+'</p>';
+  }
+  if(inUl)html+='</ul>';
+  return html;
+}
+
+function renderVerdict(ev){
+  const v=(ev.verdict||'').toUpperCase();
+  let cls='unknown', color='var(--muted)';
+  if(v.includes('RUG')){cls='rug';color='var(--red)';}
+  else if(v.includes('LEGIT')){cls='legit';color='var(--green)';}
+  else if(v.includes('SUSPICIOUS')){cls='susp';color='var(--amber)';}
+  const score=(ev.score==null?'?':ev.score);
+  const pct=(typeof ev.score==='number'?ev.score:8);
+  // strip everything before the verdict card for the body
+  let body=ev.text||''; const i=body.toUpperCase().lastIndexOf('VERDICT');
+  if(i>0) body=body.slice(i);
+  vbody.innerHTML=
+    '<div class="badge '+cls+'"><span class="d"></span>'+(ev.verdict||'UNKNOWN')+'</div>'+
+    '<div class="score"><span class="n">'+score+'</span><span class="d">/100</span>'+
+      '<span class="lbl">risk</span></div>'+
+    '<div class="meter"><i style="width:'+pct+'%;background:'+color+'"></i></div>'+
+    '<div class="vcard">'+md(body)+'</div>';
+}
+
+const GCOL={mint:'#ffa16c',burn:'#868f97',mixer:'#e24756',dex:'#479ffa',
+  exchange:'#479ffa',whale:'#e24756',wallet:'#5b5e66'};
+const GLABEL={mint:'Mint / burn',mixer:'Known mixer',dex:'DEX router',
+  exchange:'Exchange',whale:'Concentration',wallet:'Wallet'};
+
+async function loadSiblings(tok){
+  const panel=document.getElementById('ringPanel');
+  const body=document.getElementById('ring'), flag=document.getElementById('ringFlag');
+  panel.style.display=''; flag.innerHTML='';
+  body.innerHTML='<div class="gempty">◍ checking bytecode fingerprint for clones…</div>';
+  try{
+    const d=await (await fetch('/api/siblings?token='+encodeURIComponent(tok))).json();
+    if(!d.family_size || d.family_size<=1){
+      flag.innerHTML='<span class="flag dex"><span class="d"></span>unique bytecode</span>';
+      body.innerHTML='<div class="ringmsg ok">No identical-bytecode siblings found — this contract’s code appears unique in the sampled dataset.</div>';
+      return;
+    }
+    flag.innerHTML='<span class="flag mixer"><span class="d"></span>serial deployer</span>';
+    const rows=d.siblings.map(s=>
+      `<tr class="${s.is_target?'tgt':''}"><td>${s.short}${s.is_target?' <span class="tag">◄ this token</span>':''}</td>`
+      +`<td>${s.deployed}</td><td>${s.lifespan_days}d</td><td>${s.holders}</td><td>${s.transfers}</td></tr>`).join('');
+    body.innerHTML=
+      `<div class="ringmsg bad"><b>${d.family_size} ERC-20 tokens share this exact contract bytecode</b>`
+      +(d.same_day?` — all deployed <b>${d.deploy_days[0]}</b>, the same day`:'')
+      +`. Identical code + coordinated deployment + sub-day lifespans is the signature of a <b>scam factory</b> — one operator mass-producing rugs.</div>`
+      +`<table class="ringtbl"><thead><tr><th>token</th><th>deployed</th><th>lifespan</th><th>holders</th><th>transfers</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }catch(e){ body.innerHTML='<div class="gempty">Sibling check unavailable.</div>'; }
+}
+
+async function loadGraph(tok){
+  const g=document.getElementById('graph');
+  g.innerHTML='<div class="gempty">◍ building fund-flow map…</div>';
+  document.getElementById('flags').innerHTML='';
+  try{
+    const r=await fetch('/api/graph?token='+encodeURIComponent(tok));
+    const data=await r.json();
+    if(!data.nodes||!data.nodes.length){g.innerHTML='<div class="gempty">No transfer data for this token.</div>';return;}
+    renderGraph(data);
+  }catch(e){g.innerHTML='<div class="gempty">Graph unavailable.</div>';}
+}
+
+function renderGraph(data){
+  const W=1180,H=440;
+  const nodes=data.nodes.map((n,i)=>({...n,
+    x:W/2+Math.cos(i)*180+(i*53%140-70), y:H/2+Math.sin(i*1.7)*140+(i*31%100-50),
+    vx:0,vy:0}));
+  const byId={}; nodes.forEach(n=>byId[n.id]=n);
+  const edges=data.edges.filter(e=>byId[e.s]&&byId[e.t]);
+  const maxV=Math.max(...nodes.map(n=>n.in+n.out),1);
+  const rad=n=>7+15*(Math.log10(n.in+n.out+10)/Math.log10(maxV+10));
+  const maxE=Math.max(...edges.map(e=>e.val),1);
+  const ew=e=>0.6+3.2*(Math.log10(e.val+10)/Math.log10(maxE+10));
+  // force sim
+  for(let it=0;it<320;it++){
+    for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
+      const a=nodes[i],b=nodes[j]; let dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy+.01,d=Math.sqrt(d2);
+      const f=2600/d2,fx=dx/d*f,fy=dy/d*f; a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy;
+    }
+    edges.forEach(e=>{const a=byId[e.s],b=byId[e.t];let dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)+.01;
+      const f=(d-120)*.02,fx=dx/d*f,fy=dy/d*f; a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy;});
+    nodes.forEach(n=>{n.vx+=(W/2-n.x)*.003;n.vy+=(H/2-n.y)*.003;
+      n.x+=n.vx*.85;n.y+=n.vy*.85;n.vx*=.8;n.vy*=.8;
+      n.x=Math.max(40,Math.min(W-40,n.x));n.y=Math.max(34,Math.min(H-30,n.y));});
+  }
+  let svg=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">`;
+  svg+=`<defs><marker id="ah" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">`
+    +`<path d="M0,0 L6,3 L0,6" fill="#3a3d42"/></marker></defs>`;
+  edges.forEach(e=>{const a=byId[e.s],b=byId[e.t];
+    svg+=`<line x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" `
+      +`stroke="#2b2e34" stroke-width="${ew(e).toFixed(2)}" marker-end="url(#ah)"/>`;});
+  nodes.forEach(n=>{const c=GCOL[n.kind]||'#5b5e66',r=rad(n);
+    const glow=(n.kind==='mixer'||n.kind==='whale'||n.kind==='mint');
+    svg+=`<circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${r.toFixed(1)}" `
+      +`fill="${c}22" stroke="${c}" stroke-width="1.6"${glow?` style="filter:drop-shadow(0 0 6px ${c}88)"`:''}/>`;
+    const lbl=n.label||n.short;
+    svg+=`<text x="${n.x.toFixed(1)}" y="${(n.y+r+13).toFixed(1)}" text-anchor="middle" `
+      +`fill="${n.label?c:'#868f97'}" font-size="10.5" font-family="ui-monospace,monospace">${lbl}</text>`;});
+  svg+=`</svg>`;
+  document.getElementById('graph').innerHTML=svg;
+  // flags
+  const seen=new Set();
+  document.getElementById('flags').innerHTML=(data.flags||[]).filter(f=>{
+    if(seen.has(f.kind+f.label))return false;seen.add(f.kind+f.label);return true;})
+    .map(f=>`<span class="flag ${f.kind}"><span class="d"></span>${f.label}</span>`).join('');
+  // legend
+  const kinds=[...new Set(nodes.map(n=>n.kind))];
+  document.getElementById('legend').innerHTML=kinds.map(k=>
+    `<span><i style="background:${GCOL[k]||'#5b5e66'}"></i>${GLABEL[k]||k}</span>`).join('');
+}
+
+function run(){
+  if(es){es.close();}
+  const tok='0x'+document.getElementById('token').value.replace(/^0x/,'').trim();
+  logEl.innerHTML=''; steps=0;
+  loadSiblings(tok);
+  loadGraph(tok);
+  addLog('› target '+tok); addLog('› connecting to CRAFT…'); addLog('');
+  live.classList.add('on'); liveTxt.textContent='investigating';
+  runBtn.disabled=true; runBtn.textContent='Investigating…';
+  vbody.innerHTML='<div class="vempty"><div class="big">◍</div>Agent is investigating through CRAFT…</div>';
+  es=new EventSource('/api/investigate?token='+encodeURIComponent(tok));
+  es.onmessage=e=>{
+    const ev=JSON.parse(e.data);
+    if(ev.type==='log') addLog(ev.line);
+    else if(ev.type==='verdict') renderVerdict(ev);
+    else if(ev.type==='error'){addLog('✗ '+ev.message);}
+    else if(ev.type==='done'){es.close(); live.classList.remove('on'); liveTxt.textContent='done';
+      runBtn.disabled=false; runBtn.textContent='Investigate';}
+  };
+  es.onerror=()=>{live.classList.remove('on'); liveTxt.textContent='disconnected';
+    runBtn.disabled=false; runBtn.textContent='Investigate'; if(es)es.close();};
+}
+runBtn.onclick=run;
+document.getElementById('token').addEventListener('keydown',e=>{if(e.key==='Enter')run();});
+</script>
+</body>
+</html>
