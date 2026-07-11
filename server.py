@@ -29,6 +29,76 @@ app = FastAPI(title="Quorum — On-Chain Threat Intelligence")
 WEB = Path(__file__).parent / "web"
 
 
+@app.get("/api/risk")
+async def api_risk(token: str) -> dict:
+    """Machine-consumable risk score for a token — the 'Protect' surface.
+
+    Fast + deterministic (no LLM): this is what a wallet / exchange / protocol
+    calls in real time before letting a user interact. Combines concentration,
+    lifecycle, and clone-family signals into a 0-100 score + verdict + reasons.
+    """
+    tok = token.strip().lower()
+    stat_sql = f"""
+    SELECT COUNT(*) AS transfers,
+      COUNT(DISTINCT "to_address") AS holders,
+      ROUND(MAX(TRY_TO_DOUBLE("value"))/NULLIF(SUM(TRY_TO_DOUBLE("value")),0)*100,1) AS concentration,
+      ROUND((MAX("block_timestamp")-MIN("block_timestamp"))/(1000000.0*86400),2) AS lifespan
+    FROM "CRYPTO"."CRYPTO_ETHEREUM"."TOKEN_TRANSFERS"
+    WHERE LOWER("token_address") = '{tok}'
+    """
+    clone_sql = f"""
+    SELECT COUNT(*) AS fam, MIN(TO_VARCHAR(TO_TIMESTAMP(c2."block_timestamp"/1000000),'YYYY-MM-DD')) AS d0,
+      MAX(TO_VARCHAR(TO_TIMESTAMP(c2."block_timestamp"/1000000),'YYYY-MM-DD')) AS d1
+    FROM "CRYPTO"."CRYPTO_ETHEREUM"."CONTRACTS" c1
+    JOIN "CRYPTO"."CRYPTO_ETHEREUM"."CONTRACTS" c2 ON c1."bytecode"=c2."bytecode"
+    WHERE LOWER(c1."address")='{tok}' AND c2."is_erc20"=TRUE
+    """
+    async with Craft() as craft:
+        s = await craft.execute_query(CONNECTION, stat_sql, max_rows=1)
+        c = await craft.execute_query(CONNECTION, clone_sql, max_rows=1)
+
+    def row0(res):
+        cols = [x.lower() for x in (res.get("columns") or [])]
+        rows = res.get("rows") or [[]]
+        return dict(zip(cols, rows[0])) if rows and rows[0] else {}
+
+    sr, cr = row0(s), row0(c)
+    conc = float(sr.get("concentration") or 0)
+    life = float(sr.get("lifespan") or 0)
+    holders = int(sr.get("holders") or 0)
+    transfers = int(sr.get("transfers") or 0)
+    fam = int(cr.get("fam") or 0)
+
+    signals = []
+    score = 0
+    if transfers == 0:
+        return {"token": tok, "risk_score": None, "verdict": "UNKNOWN",
+                "reason": "no transfer activity found in dataset"}
+    if conc >= 90:
+        score += 45; signals.append({"name": "extreme holder concentration", "value": f"{conc}%", "severity": "critical"})
+    elif conc >= 70:
+        score += 30; signals.append({"name": "high holder concentration", "value": f"{conc}%", "severity": "high"})
+    if life < 1:
+        score += 20; signals.append({"name": "sub-day lifespan", "value": f"{life}d", "severity": "high"})
+    elif life < 3:
+        score += 10; signals.append({"name": "short lifespan", "value": f"{life}d", "severity": "medium"})
+    if holders < 25:
+        score += 12; signals.append({"name": "very few holders", "value": holders, "severity": "medium"})
+    if fam > 1:
+        same = cr.get("d0") == cr.get("d1")
+        score += 25 if same else 15
+        signals.append({"name": "bytecode clone family", "value": f"{fam} tokens" + (" same-day" if same else ""), "severity": "critical" if same else "high"})
+    score = min(99, score)
+    verdict = "LIKELY RUG" if score >= 70 else "SUSPICIOUS" if score >= 40 else "LIKELY LEGITIMATE"
+    return {
+        "token": tok, "risk_score": score, "verdict": verdict,
+        "signals": signals,
+        "metrics": {"concentration_pct": conc, "lifespan_days": life,
+                    "holders": holders, "transfers": transfers, "clone_family": fam},
+        "action": "block" if score >= 70 else "warn" if score >= 40 else "allow",
+    }
+
+
 _OVERVIEW_CACHE: dict | None = None
 
 

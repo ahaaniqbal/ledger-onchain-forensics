@@ -208,6 +208,36 @@
   .legend span{display:inline-flex; align-items:center; gap:6px}
   .legend i{width:9px;height:9px;border-radius:50%;display:block}
 
+  /* protect / API page */
+  .pintro{color:var(--muted-2); font-size:14px; line-height:1.6; max-width:770px; margin:0 0 16px}
+  .pintro b{color:var(--text)}
+  .apibar{display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap}
+  .integ{display:grid; grid-template-columns:repeat(3,1fr); gap:16px}
+  @media(max-width:820px){.integ{grid-template-columns:1fr}}
+  .icard{overflow:hidden}
+  .ihead{padding:13px 16px; border-bottom:1px solid var(--border); font-family:var(--mono);
+    font-size:12.5px; color:var(--muted-2)}
+  .code{margin:0; padding:14px 16px; font-family:var(--mono); font-size:11.5px; line-height:1.65;
+    color:var(--muted-2); white-space:pre-wrap; overflow-x:auto}
+  .code .k{color:#c792ea} .code .s{color:#a8d98a} .code .c{color:#5b5e66} .code .n{color:var(--amber)}
+  .pipe{display:flex; align-items:stretch; gap:10px; padding:16px; flex-wrap:wrap}
+  .pipe .step{flex:1; min-width:150px; background:var(--surface-2); border:1px solid var(--border);
+    border-radius:10px; padding:12px 14px}
+  .pipe .step b{display:block; color:var(--text); font-family:var(--mono); font-size:12.5px; margin-bottom:5px}
+  .pipe .step span{color:var(--muted); font-size:12px; line-height:1.45}
+  .pipe .arrow{display:flex; align-items:center; color:var(--blue); font-family:var(--mono)}
+  @media(max-width:820px){.pipe .arrow{display:none}}
+  .riskcard{display:flex; gap:18px; align-items:center; padding:16px; border:1px solid var(--border);
+    border-radius:12px; background:var(--surface-2); flex-wrap:wrap}
+  .action{font-family:var(--mono); font-size:13px; letter-spacing:.1em; text-transform:uppercase;
+    padding:11px 17px; border-radius:10px; border:1px solid; font-weight:600}
+  .action.block{color:var(--red); border-color:rgba(226,71,86,.5); background:rgba(226,71,86,.1)}
+  .action.warn{color:var(--amber); border-color:rgba(255,161,108,.5); background:rgba(255,161,108,.1)}
+  .action.allow{color:var(--green); border-color:rgba(78,190,150,.5); background:rgba(78,190,150,.1)}
+  .risksig{display:flex; gap:8px; flex-wrap:wrap}
+  .risksig span{font-family:var(--mono); font-size:11px; color:var(--muted-2); border:1px solid var(--border);
+    border-radius:99px; padding:4px 9px}
+
   footer{border-top:1px solid var(--border); padding:18px 0; color:var(--muted);
     font-size:12px; font-family:var(--mono); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap}
 </style>
@@ -242,8 +272,9 @@
     </header>
 
     <nav class="nav">
-      <a data-v="overview" class="active" onclick="showView('overview')">Overview</a>
-      <a data-v="investigation" onclick="showView('investigation')">Investigation</a>
+      <a data-v="overview" class="active" onclick="showView('overview')">Monitor</a>
+      <a data-v="investigation" onclick="showView('investigation')">Investigate</a>
+      <a data-v="protect" onclick="showView('protect')">Protect · API</a>
     </nav>
 
     <div class="view" id="v-overview">
@@ -305,6 +336,67 @@
     </section>
     </div><!--/investigation-->
 
+    <div class="view" id="v-protect" style="display:none">
+      <section class="panel" style="margin-bottom:20px">
+        <div class="phead"><div class="ptitle">quorum protect · risk API</div>
+          <div class="stack">GET <b>/api/risk</b></div></div>
+        <div style="padding:18px 20px">
+          <p class="pintro">Wallets, exchanges, and DeFi protocols call this endpoint before every
+            transaction. One integration screens <b>every user, on every token, automatically</b> —
+            not one address at a time. This is how Quorum protects at scale.</p>
+          <div class="apibar">
+            <label class="field"><span>0x</span><input id="rtoken" spellcheck="false"
+              value="0008a519b43d1dd0d81e08b4d569c769524e0593" /></label>
+            <button class="run" onclick="checkRisk()">Query risk API</button>
+          </div>
+          <div id="riskout"></div>
+        </div>
+      </section>
+
+      <div class="integ">
+        <section class="panel icard">
+          <div class="ihead">👛 Wallet · pre-swap guard</div>
+          <pre class="code"><span class="c">// before any swap, screen the token</span>
+const r = <span class="k">await</span> fetch(
+  <span class="s">`https://api.quorum.sh/risk?token=${'{'}token{'}'}`</span>
+).then(r => r.json());
+
+<span class="k">if</span> (r.action === <span class="s">'block'</span>)
+  return refuseSwap(r);  <span class="c">// 99/100 — rug</span></pre>
+        </section>
+        <section class="panel icard">
+          <div class="ihead">🏦 Exchange · deposit screening</div>
+          <pre class="code"><span class="c"># screen every incoming token deposit</span>
+curl api.quorum.sh/risk?token=0x…
+
+<span class="c"># → { "verdict": "LIKELY RUG",</span>
+<span class="c">#     "action": "block",</span>
+<span class="c">#     "signals": ["clone family", …] }</span></pre>
+        </section>
+        <section class="panel icard">
+          <div class="ihead">🛡️ Protocol · listing firewall</div>
+          <pre class="code"><span class="c">// reject tokens Quorum flags</span>
+const {'{'} score {'}'} = <span class="k">await</span> quorum.risk(token);
+
+<span class="k">if</span> (score >= <span class="n">70</span>)
+  <span class="k">throw new</span> Error(<span class="s">'Blocked by Quorum'</span>);</pre>
+        </section>
+      </div>
+
+      <section class="panel" style="margin-top:20px">
+        <div class="phead"><div class="ptitle">how it deploys · autonomous pipeline</div></div>
+        <div class="pipe">
+          <div class="step"><b>1 · Monitor</b><span>Continuously scans every new contract &amp; token on-chain</span></div>
+          <div class="arrow">→</div>
+          <div class="step"><b>2 · Score</b><span>Deterministic risk API flags threats in milliseconds</span></div>
+          <div class="arrow">→</div>
+          <div class="step"><b>3 · Investigate</b><span>Agent auto-opens a case, unmasks the operator/ring</span></div>
+          <div class="arrow">→</div>
+          <div class="step"><b>4 · Protect</b><span>Wallets &amp; exchanges block the threat before users touch it</span></div>
+        </div>
+      </section>
+    </div>
+
     <footer>
       <span>Data: Spider 2.0 Ethereum sample · 25M txns · read-only Snowflake via CRAFT</span>
       <span>Signals grounded in AML research (FlowScope, DenseFlow)</span>
@@ -361,6 +453,25 @@ async function loadOverview(){
       +`<tbody>${rows}</tbody></table>`;
     renderActivity();
   }catch(e){document.getElementById('board').innerHTML='<div class="gempty" style="height:100px">Threat board unavailable.</div>';}
+}
+async function checkRisk(){
+  const tok='0x'+document.getElementById('rtoken').value.replace(/^0x/,'').trim();
+  const out=document.getElementById('riskout');
+  out.innerHTML='<div class="gempty" style="height:70px">◍ querying risk API…</div>';
+  try{
+    const d=await (await fetch('/api/risk?token='+encodeURIComponent(tok))).json();
+    const act=(d.action||'allow');
+    const sc=(d.risk_score==null?'?':d.risk_score);
+    const sigs=(d.signals||[]).map(s=>`<span>${s.name}: ${s.value}</span>`).join('');
+    out.innerHTML=`<div class="riskcard">`
+      +`<div class="action ${act}">${act}</div>`
+      +`<div><div style="font-family:var(--mono);font-size:26px;font-weight:600">${sc}`
+        +`<span style="color:var(--muted);font-size:14px">/100</span></div>`
+        +`<div style="color:var(--muted);font-size:12px;font-family:var(--mono)">${d.verdict||''}</div></div>`
+      +`<div style="flex:1"><div class="risksig">${sigs}</div></div></div>`
+      +`<pre class="code" style="margin-top:12px;border:1px solid var(--border);border-radius:10px">`
+      +`${JSON.stringify(d,null,2).replace(/</g,'&lt;')}</pre>`;
+  }catch(e){out.innerHTML='<div class="gempty" style="height:60px">API unavailable.</div>';}
 }
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>{v.style.display=(v.id==='v-'+name)?'':'none';});
