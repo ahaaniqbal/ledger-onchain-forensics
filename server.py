@@ -25,7 +25,7 @@ from prompts import CONNECTION
 
 load_dotenv()
 
-app = FastAPI(title="On-Chain Forensics")
+app = FastAPI(title="Quorum — On-Chain Threat Intelligence")
 WEB = Path(__file__).parent / "web"
 
 

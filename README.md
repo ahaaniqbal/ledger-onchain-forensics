@@ -1,4 +1,4 @@
-# Ledger — Autonomous On-Chain Forensics Agent
+# Quorum — Autonomous On-Chain Forensics Agent
 
 An AI agent that investigates any Ethereum ERC-20 and decides whether it's a
 **scam / rug pull** — then unmasks the operator behind it. Built for the

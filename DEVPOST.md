@@ -1,4 +1,4 @@
-# Ledger — Autonomous On-Chain Forensics Agent
+# Quorum — Autonomous On-Chain Forensics Agent
 
 **Track:** Crypto / Blockchain — wallet & scam-token pattern detection
 
@@ -9,7 +9,7 @@ agent could do the on-chain half of a ZachXBT investigation in minutes — and n
 just flag one bad token, but unmask the operator behind a whole ring?
 
 ## What it does
-**Ledger** is an autonomous on-chain investigator. You give it an Ethereum ERC-20
+**Quorum** is an autonomous on-chain investigator. You give it an Ethereum ERC-20
 address and it:
 
 1. **Reasons** through a forensic methodology (a Nebius-hosted LLM).
@@ -23,7 +23,7 @@ address and it:
    evidence, and a **parameterized detection rule a compliance team can ship.**
 
 ### The discovery that sets it apart
-On our demo token, Ledger didn't just flag a rug — it fingerprinted the bytecode
+On our demo token, Quorum didn't just flag a rug — it fingerprinted the bytecode
 and found the token is **1 of 3 identical-code ERC-20s all deployed on the same
 day (2023-10-19), all dead within a day.** That's a **serial rugger / scam
 factory**, surfaced autonomously. Detection → discovery.
