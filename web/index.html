@@ -52,12 +52,12 @@
     backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px)}
 
   /* hero */
-  header.hero{padding:44px 0 24px}
+  header.hero{padding:26px 0 14px}
   .kicker{font-family:var(--mono); font-size:11px; letter-spacing:.14em;
-    text-transform:uppercase; color:var(--blue); margin:0 0 12px}
-  h1{font-size:44px; line-height:1.02; letter-spacing:-.03em; margin:0 0 12px;
+    text-transform:uppercase; color:var(--blue); margin:0 0 9px}
+  h1{font-size:34px; line-height:1.03; letter-spacing:-.03em; margin:0 0 9px;
     font-weight:600; text-wrap:balance}
-  .sub{color:var(--muted); font-size:16px; max-width:640px; margin:0}
+  .sub{color:var(--muted); font-size:15px; max-width:620px; margin:0}
 
   /* command bar */
   .cmd{display:flex; gap:10px; margin:24px 0 14px; flex-wrap:wrap}
@@ -238,6 +238,20 @@
   .risksig span{font-family:var(--mono); font-size:11px; color:var(--muted-2); border:1px solid var(--border);
     border-radius:99px; padding:4px 9px}
 
+  /* campaigns */
+  .oprow{display:flex; align-items:center; gap:12px; padding:12px 16px;
+    border-bottom:1px solid var(--surface-2); cursor:pointer; transition:.12s}
+  .oprow:hover{background:var(--surface-2)}
+  .oprow.active{background:rgba(226,71,86,.08); box-shadow:inset 3px 0 0 var(--red)}
+  .opfp{font-family:var(--mono); font-size:12px; color:var(--muted-2); flex:1}
+  .oprow.active .opfp{color:var(--text)}
+  .opbadge{font-family:var(--mono); font-size:11px; padding:3px 9px; border-radius:99px;
+    border:1px solid rgba(226,71,86,.4); color:var(--red); white-space:nowrap}
+  .opmeta{font-family:var(--mono); font-size:10.5px; color:var(--muted); text-align:right;
+    min-width:78px; line-height:1.5}
+  #campaign{position:relative; height:456px; overflow:hidden}
+  #campaign svg{display:block; width:100%; height:456px}
+
   footer{border-top:1px solid var(--border); padding:18px 0; color:var(--muted);
     font-size:12px; font-family:var(--mono); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap}
 </style>
@@ -274,6 +288,7 @@
     <nav class="nav">
       <a data-v="overview" class="active" onclick="showView('overview')">Monitor</a>
       <a data-v="investigation" onclick="showView('investigation')">Investigate</a>
+      <a data-v="campaigns" onclick="showView('campaigns');loadOperators()">Campaigns</a>
       <a data-v="protect" onclick="showView('protect')">Protect · API</a>
     </nav>
 
@@ -335,6 +350,33 @@
       <div class="legend" id="legend"></div>
     </section>
     </div><!--/investigation-->
+
+    <div class="view" id="v-campaigns" style="display:none">
+      <p class="pintro" style="margin-top:16px">Quorum clusters all <b>65,639</b> ERC-20 contracts by exact
+        bytecode fingerprint, then cross-references each cluster with real rug behavior — surfacing the
+        <b>rug-kits</b> that mass-produce scams. This is entity resolution at chain scale: one fingerprint,
+        a whole fleet of rugs.</p>
+      <div class="stats" id="opstats" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat"><div class="n">—</div><div class="l">loading…</div></div>
+        <div class="stat"><div class="n">—</div><div class="l">loading…</div></div>
+        <div class="stat"><div class="n">—</div><div class="l">loading…</div></div>
+      </div>
+      <div class="grid" style="grid-template-columns:1fr 1.35fr; padding-bottom:0">
+        <section class="panel">
+          <div class="phead"><div class="ptitle">rug-kit operators</div>
+            <div class="live on"><span class="pulse"></span><span>resolved</span></div></div>
+          <div id="oplist"><div class="gempty" style="height:200px">◍ clustering 65k contracts…</div></div>
+        </section>
+        <section class="panel console" id="campanel">
+          <div class="phead">
+            <div class="traffic"><i></i><i></i><i></i></div>
+            <div class="ptitle" id="camtitle">operator campaign · link chart</div>
+            <div class="live" id="camlive"><span class="pulse"></span><span id="camstat">select an operator</span></div>
+          </div>
+          <div id="campaign"><div class="gempty" style="height:440px">Select a rug-kit operator to resolve its campaign →</div></div>
+        </section>
+      </div>
+    </div>
 
     <div class="view" id="v-protect" style="display:none">
       <section class="panel" style="margin-bottom:20px">
@@ -454,6 +496,68 @@ async function loadOverview(){
     renderActivity();
   }catch(e){document.getElementById('board').innerHTML='<div class="gempty" style="height:100px">Threat board unavailable.</div>';}
 }
+/* ---- Campaigns: chain-wide rug-kit operator resolution ---- */
+let OPS=null;
+async function loadOperators(){
+  if(OPS) return;
+  try{
+    const d=await (await fetch('/api/operators')).json(); OPS=d;
+    document.getElementById('opstats').innerHTML=
+      `<div class="stat"><div class="n">${d.totals.operators}</div><div class="l"><span class="pulse"></span>rug-kit operators</div></div>`
+     +`<div class="stat"><div class="n">${d.totals.rug_tokens}</div><div class="l">rug tokens produced</div></div>`
+     +`<div class="stat"><div class="n">${d.totals.victims.toLocaleString()}</div><div class="l">wallets hit</div></div>`;
+    document.getElementById('oplist').innerHTML=d.operators.map((o,i)=>
+      `<div class="oprow${i===0?' active':''}" id="op${i}" onclick="showCampaign(${i})">`
+      +`<div class="opfp">${o.fp.slice(0,10)}… <span style="color:var(--muted)">· ${o.cluster_tokens} tokens · ${o.rug_rate}% rug</span></div>`
+      +`<div class="opbadge">${o.rug_tokens} rugs</div>`
+      +`<div class="opmeta">${o.victims.toLocaleString()} hit<br>${o.first_deploy.slice(0,4)}–${o.last_deploy.slice(0,4)}</div></div>`).join('');
+    showCampaign(0);
+  }catch(e){document.getElementById('oplist').innerHTML='<div class="gempty" style="height:200px">Operators unavailable.</div>';}
+}
+function ease3(x){return 1-Math.pow(1-x,3);}
+function hexagon(cx,cy,r){let p=[];for(let k=0;k<6;k++){const a=Math.PI/6+k*Math.PI/3;
+  p.push((cx+Math.cos(a)*r).toFixed(1)+','+(cy+Math.sin(a)*r).toFixed(1));}
+  return `<polygon points="${p.join(' ')}" fill="rgba(226,71,86,.18)" stroke="#e24756" stroke-width="2" style="filter:drop-shadow(0 0 11px rgba(226,71,86,.6))"/>`;}
+async function showCampaign(i){
+  if(!OPS) return; const o=OPS.operators[i];
+  document.querySelectorAll('.oprow').forEach((r,j)=>r.classList.toggle('active',j===i));
+  document.getElementById('camtitle').textContent='operator '+o.fp.slice(0,8)+'… · '+o.rug_tokens+' rug tokens';
+  document.getElementById('camstat').textContent='resolving…';
+  const el=document.getElementById('campaign');
+  el.innerHTML='<div class="gempty" style="height:440px">◍ resolving campaign fleet…</div>';
+  try{
+    const d=await (await fetch('/api/operator?fp='+o.fp+'&limit=45')).json();
+    animateCampaign(o, d.members||[], el);
+  }catch(e){ el.innerHTML='<div class="gempty" style="height:440px">Campaign unavailable.</div>'; }
+}
+function animateCampaign(o, members, el){
+  const W=760,H=456,cx=W/2,cy=H/2, N=Math.max(1,members.length);
+  const nodes=members.map((m,i)=>{const a=i*2.399963, rr=32+Math.sqrt(i/N)*185;
+    return {rug:m.rug, holders:m.holders||0, x:cx+Math.cos(a)*rr, y:cy+Math.sin(a)*rr,
+      r:m.rug?4.5+Math.min(6,(m.holders||0)/180):3.5};});
+  const t0=performance.now(), DUR=1600;
+  function frame(now){
+    const t=Math.min(1,(now-t0)/DUR), e=ease3(t);
+    let s=`<svg viewBox="0 0 ${W} ${H}">`;
+    s+=`<circle cx="${cx}" cy="${cy}" r="${(e*235).toFixed(1)}" fill="none" stroke="#479ffa" stroke-width="1.5" opacity="${((1-t)*0.35).toFixed(2)}"/>`;
+    nodes.forEach((n,i)=>{const lp=Math.max(0,Math.min(1,(t-(i/N)*0.4)/0.5)); if(lp<=0)return;
+      const nx=cx+(n.x-cx)*ease3(lp), ny=cy+(n.y-cy)*ease3(lp), col=n.rug?'#e24756':'#3a3d42';
+      s+=`<line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="${col}" stroke-width="0.7" opacity="${(lp*(n.rug?0.55:0.18)).toFixed(2)}"/>`;});
+    nodes.forEach((n,i)=>{const lp=Math.max(0,Math.min(1,(t-(i/N)*0.4)/0.5)); if(lp<=0)return;
+      const nx=cx+(n.x-cx)*ease3(lp), ny=cy+(n.y-cy)*ease3(lp), col=n.rug?'#e24756':'#5b5e66';
+      const glow=n.rug?' style="filter:drop-shadow(0 0 5px rgba(226,71,86,.6))"':'';
+      s+=`<circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="${(n.r*lp).toFixed(1)}" fill="${col}22" stroke="${col}" stroke-width="1.3" opacity="${lp.toFixed(2)}"${glow}/>`;});
+    s+=hexagon(cx,cy,14+e*9);
+    s+=`<text x="${cx}" y="${cy+3.5}" text-anchor="middle" fill="#fff" font-size="9.5" letter-spacing="1" font-family="ui-monospace,monospace" opacity="${e.toFixed(2)}">RUG·KIT</text>`;
+    s+=`<text x="${cx}" y="${H-15}" text-anchor="middle" fill="#868f97" font-size="12" font-family="ui-monospace,monospace">${Math.floor(e*o.victims).toLocaleString()} wallets hit · ${o.rug_tokens} rug tokens · ${o.cluster_tokens} deployed</text>`;
+    s+=`</svg>`;
+    el.innerHTML=s;
+    if(t<1) requestAnimationFrame(frame);
+    else document.getElementById('camstat').textContent='resolved';
+  }
+  requestAnimationFrame(frame);
+}
+
 async function checkRisk(){
   const tok='0x'+document.getElementById('rtoken').value.replace(/^0x/,'').trim();
   const out=document.getElementById('riskout');

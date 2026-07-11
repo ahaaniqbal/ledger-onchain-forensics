@@ -99,6 +99,125 @@ async def api_risk(token: str) -> dict:
     }
 
 
+_OPS_CACHE: dict | None = None
+_OP_MEMBERS_CACHE: dict[str, dict] = {}
+
+
+@app.get("/api/operators")
+async def api_operators() -> dict:
+    """Chain-wide scam-OPERATOR leaderboard: cluster all 65k ERC-20s by exact
+    bytecode fingerprint, rank operators by how many of their tokens are
+    rug-shaped. Entity resolution at scale — the campaign view. Cached (heavy).
+    """
+    global _OPS_CACHE
+    if _OPS_CACHE is not None:
+        return _OPS_CACHE
+    sql = """
+    WITH erc AS (
+      SELECT LOWER("address") AS addr, MD5("bytecode") AS fp, "block_timestamp" AS ts
+      FROM "CRYPTO"."CRYPTO_ETHEREUM"."CONTRACTS" WHERE "is_erc20"=TRUE
+    ),
+    tt AS (
+      SELECT LOWER("token_address") AS token, COUNT(*) AS transfers,
+        COUNT(DISTINCT "to_address") AS holders,
+        (MAX("block_timestamp")-MIN("block_timestamp"))/(1000000.0*86400) AS life,
+        MAX(TRY_TO_DOUBLE("value"))/NULLIF(SUM(TRY_TO_DOUBLE("value")),0) AS conc
+      FROM "CRYPTO"."CRYPTO_ETHEREUM"."TOKEN_TRANSFERS" GROUP BY LOWER("token_address")
+    )
+    SELECT e.fp,
+      COUNT(*) AS cluster_tokens, COUNT(tt.token) AS active,
+      SUM(CASE WHEN tt.conc>0.8 AND tt.life<3 THEN 1 ELSE 0 END) AS rug_tokens,
+      ROUND(SUM(tt.holders)) AS victims,
+      TO_VARCHAR(TO_TIMESTAMP(MIN(e.ts)/1000000),'YYYY-MM-DD') AS first_deploy,
+      TO_VARCHAR(TO_TIMESTAMP(MAX(e.ts)/1000000),'YYYY-MM-DD') AS last_deploy,
+      COUNT(DISTINCT TO_VARCHAR(TO_TIMESTAMP(e.ts/1000000),'YYYY-MM-DD')) AS deploy_days
+    FROM erc e LEFT JOIN tt ON e.addr=tt.token
+    GROUP BY e.fp
+    HAVING COUNT(*)>=50 AND SUM(CASE WHEN tt.conc>0.8 AND tt.life<3 THEN 1 ELSE 0 END)>=5
+    ORDER BY rug_tokens DESC LIMIT 15
+    """
+    async with Craft() as craft:
+        res = await craft.execute_query(CONNECTION, sql, max_rows=20)
+    cols = [c.lower() for c in (res.get("columns") or [])]
+    idx = {c: i for i, c in enumerate(cols)}
+    ops = []
+    for r in res.get("rows") or []:
+        rug = int(r[idx["rug_tokens"]] or 0)
+        active = int(r[idx["active"]] or 0)
+        ops.append({
+            "fp": r[idx["fp"]],
+            "cluster_tokens": int(r[idx["cluster_tokens"]] or 0),
+            "active": active,
+            "rug_tokens": rug,
+            "rug_rate": round(rug / active * 100) if active else 0,
+            "victims": int(float(r[idx["victims"]] or 0)),
+            "first_deploy": r[idx["first_deploy"]],
+            "last_deploy": r[idx["last_deploy"]],
+            "deploy_days": int(r[idx["deploy_days"]] or 0),
+        })
+    _OPS_CACHE = {
+        "operators": ops,
+        "totals": {
+            "operators": len(ops),
+            "rug_tokens": sum(o["rug_tokens"] for o in ops),
+            "victims": sum(o["victims"] for o in ops),
+        },
+    }
+    return _OPS_CACHE
+
+
+@app.get("/api/operator")
+async def api_operator(fp: str, limit: int = 45) -> dict:
+    """Campaign members for one operator (bytecode fingerprint): the tokens it
+    deployed, with rug metrics — powers the operator→tokens network graph."""
+    fp = fp.strip().lower()
+    if fp in _OP_MEMBERS_CACHE:
+        return _OP_MEMBERS_CACHE[fp]
+    sql = f"""
+    WITH erc AS (
+      SELECT LOWER("address") AS addr, "block_timestamp" AS ts
+      FROM "CRYPTO"."CRYPTO_ETHEREUM"."CONTRACTS"
+      WHERE "is_erc20"=TRUE AND MD5("bytecode")='{fp}'
+    ),
+    tt AS (
+      SELECT LOWER("token_address") AS token, COUNT(*) AS transfers,
+        COUNT(DISTINCT "to_address") AS holders,
+        (MAX("block_timestamp")-MIN("block_timestamp"))/(1000000.0*86400) AS life,
+        MAX(TRY_TO_DOUBLE("value"))/NULLIF(SUM(TRY_TO_DOUBLE("value")),0) AS conc
+      FROM "CRYPTO"."CRYPTO_ETHEREUM"."TOKEN_TRANSFERS"
+      WHERE LOWER("token_address") IN (SELECT addr FROM erc)
+      GROUP BY LOWER("token_address")
+    )
+    SELECT e.addr AS token, TO_VARCHAR(TO_TIMESTAMP(e.ts/1000000),'YYYY-MM-DD') AS deployed,
+      COALESCE(tt.transfers,0) AS transfers, COALESCE(tt.holders,0) AS holders,
+      ROUND(COALESCE(tt.life,0),2) AS life, ROUND(COALESCE(tt.conc,0)*100,1) AS conc,
+      CASE WHEN COALESCE(tt.conc,0)>0.8 AND COALESCE(tt.life,999)<3 AND COALESCE(tt.holders,0)>0
+           THEN 0 ELSE 1 END AS rug_order
+    FROM erc e LEFT JOIN tt ON e.addr=tt.token
+    ORDER BY rug_order ASC, holders DESC NULLS LAST LIMIT {int(limit)}
+    """
+    async with Craft() as craft:
+        res = await craft.execute_query(CONNECTION, sql, max_rows=limit)
+    cols = [c.lower() for c in (res.get("columns") or [])]
+    idx = {c: i for i, c in enumerate(cols)}
+    members = []
+    for r in res.get("rows") or []:
+        conc = float(r[idx["conc"]] or 0)
+        life = float(r[idx["life"]] or 0)
+        holders = int(r[idx["holders"]] or 0)
+        is_rug = conc > 80 and life < 3 and holders > 0
+        addr = r[idx["token"]]
+        members.append({
+            "token": addr, "short": addr[:6] + "…" + addr[-4:],
+            "deployed": r[idx["deployed"]],
+            "transfers": int(r[idx["transfers"]] or 0),
+            "holders": holders, "life": life, "conc": conc, "rug": is_rug,
+        })
+    out = {"fp": fp, "members": members}
+    _OP_MEMBERS_CACHE[fp] = out
+    return out
+
+
 _OVERVIEW_CACHE: dict | None = None
 
 
