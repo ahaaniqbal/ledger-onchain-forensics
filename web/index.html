@@ -12,7 +12,7 @@
     --blue:#37e0a0; --amber:#f0b45f; --green:#37e0a0; --red:#f0616d;
     --sans:-apple-system,"Inter","Segoe UI",system-ui,sans-serif;
     --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,monospace;
-    --r-card:12px; --r-in:8px;
+    --r-card:8px; --r-in:7px;
   }
   *{box-sizing:border-box}
   html,body{margin:0}
@@ -32,25 +32,32 @@
   .wrap{max-width:1220px; margin:0 auto; padding:0 24px; position:relative; z-index:1}
 
   /* top bar */
-  .topbar{display:flex; align-items:center; justify-content:space-between;
-    height:56px; border-bottom:1px solid var(--border)}
-  .brand{display:flex; align-items:center; gap:10px; font-weight:600; letter-spacing:-.02em}
+  .topbar{display:flex; align-items:center; gap:22px; height:56px;
+    border-bottom:1px solid var(--border); position:sticky; top:0; z-index:30; background:var(--bg)}
+  .brand{display:flex; align-items:center; gap:9px; font-weight:600; letter-spacing:-.02em}
   .brand .mark{color:var(--text)}
-  .brand .bname{font-size:17px; letter-spacing:-.01em}
-  .brand small{color:var(--muted); font-weight:400; margin-left:2px}
+  .brand .bname{font-size:16px; letter-spacing:-.01em}
+  .brand small{color:var(--muted); font-weight:400; margin-left:2px; font-size:12px; white-space:nowrap}
+  @media(max-width:1240px){.brand small{display:none}}
+  .topbar .nav{margin:0}
+  .appbar-right{margin-left:auto; display:flex; align-items:center; gap:10px}
+  .appbar-right .field{flex:0 0 300px; height:38px}
+  .appbar-right .run{height:38px; padding:0 18px; font-size:13px}
+  .onduty{font-family:var(--mono); font-size:11px; color:var(--green); display:flex;
+    align-items:center; gap:6px; white-space:nowrap}
+  .onduty .pulse{width:7px;height:7px;border-radius:50%;background:var(--green);
+    box-shadow:0 0 8px var(--green); animation:blink 1.4s infinite}
   .stack{color:var(--muted); font-size:12px; font-family:var(--mono)}
   .stack b{color:var(--muted-2); font-weight:500}
 
   /* view nav — segmented tab control */
-  .nav{display:inline-flex; gap:4px; margin:20px 0 26px; padding:4px;
-    background:var(--surface); border:1px solid var(--border); border-radius:12px;
-    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px)}
-  .nav a{cursor:pointer; font-family:var(--sans); font-weight:500; font-size:13.5px;
-    color:var(--muted); padding:9px 18px; border-radius:8px; transition:.15s; user-select:none;
+  .nav{display:inline-flex; gap:2px; margin:0; padding:3px;
+    background:var(--surface); border:1px solid var(--border); border-radius:8px}
+  .nav a{cursor:pointer; font-family:var(--sans); font-weight:500; font-size:13px;
+    color:var(--muted); padding:6px 13px; border-radius:5px; transition:.12s; user-select:none;
     letter-spacing:-.01em}
-  .nav a:hover{color:var(--text); background:rgba(255,255,255,.03)}
-  .nav a.active{color:#fff; background:rgba(55,224,160,.18);
-    box-shadow:inset 0 0 0 1px rgba(55,224,160,.45)}
+  .nav a:hover{color:var(--text)}
+  .nav a.active{color:var(--text); background:var(--surface-2)}
 
   /* hero */
   header.hero{padding:26px 0 14px}
@@ -62,17 +69,16 @@
 
   /* command bar */
   .cmd{display:flex; gap:10px; margin:24px 0 14px; flex-wrap:wrap}
-  .field{flex:1 1 420px; display:flex; align-items:center; gap:10px;
+  .field{flex:1 1 420px; display:flex; align-items:center; gap:9px;
     background:var(--surface); border:1px solid var(--border);
-    border-radius:var(--r-in); padding:0 14px; height:46px;
-    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px)}
+    border-radius:var(--r-in); padding:0 12px; height:46px}
   .field:focus-within{border-color:var(--blue)}
   .field span{color:var(--muted); font-family:var(--mono); font-size:12px}
   .field input{flex:1; background:transparent; border:0; outline:0; color:var(--text);
     font-family:var(--mono); font-size:13.5px; letter-spacing:-.01em}
-  button.run{height:46px; padding:0 22px; border:0; border-radius:99px;
-    background:var(--text); color:#000; font-weight:600; font-size:14px; cursor:pointer;
-    font-family:var(--sans); transition:opacity .15s}
+  button.run{height:46px; padding:0 20px; border:0; border-radius:7px;
+    background:var(--text); color:#0a0a0a; font-weight:600; font-size:13.5px; cursor:pointer;
+    font-family:var(--sans); transition:opacity .15s; letter-spacing:-.01em}
   button.run:hover{opacity:.9}
   button.run:disabled{opacity:.5; cursor:default}
   .chips{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:28px}
@@ -83,12 +89,14 @@
   .chip b{color:var(--text); font-weight:500}
 
   /* stat tiles */
-  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:26px 0 22px}
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); margin:20px 0 14px;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--r-card); overflow:hidden}
   @media(max-width:720px){.stats{grid-template-columns:1fr}}
-  .stat{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-card);
-    padding:18px 20px; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px)}
-  .stat .n{font-family:var(--mono); font-size:30px; font-weight:600; letter-spacing:-.03em; color:var(--text)}
-  .stat .l{color:var(--muted); font-size:12px; margin-top:4px; font-family:var(--mono)}
+  .stat{padding:13px 18px; border-left:1px solid var(--border)}
+  .stat:first-child{border-left:0}
+  .stat .n{font-family:var(--mono); font-size:22px; font-weight:600; letter-spacing:-.02em; color:var(--text)}
+  .stat .l{color:var(--muted); font-size:10.5px; margin-top:3px; font-family:var(--mono);
+    letter-spacing:.06em; text-transform:uppercase}
   .stat .pulse{display:inline-block; width:7px;height:7px;border-radius:50%;background:var(--green);
     box-shadow:0 0 8px var(--green); margin-right:7px; animation:blink 1.4s infinite; vertical-align:middle}
 
@@ -100,10 +108,11 @@
   .dispatch:hover{background:rgba(55,224,160,.2); color:#cfe4ff}
   .board-panel .live{margin-left:0}
   .btbl{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:12.5px}
-  .btbl th{text-align:left; color:var(--muted); font-weight:400; padding:10px 16px;
+  .btbl th{text-align:left; color:var(--muted); font-weight:400; padding:9px 16px;
+    font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
     border-bottom:1px solid var(--border)}
   .btbl th.r,.btbl td.r{text-align:right}
-  .btbl td{padding:11px 16px; color:var(--muted-2); border-bottom:1px solid var(--surface-2)}
+  .btbl td{padding:8px 16px; color:var(--muted-2); border-bottom:1px solid var(--surface-2)}
   .btbl tbody tr{cursor:pointer; transition:background .12s}
   .btbl tbody tr:hover{background:var(--surface-2)}
   .btbl tbody tr:hover td:first-child{color:var(--text)}
@@ -117,13 +126,23 @@
   .act-panel{margin-bottom:20px}
   #act{padding:14px 12px 6px}
   .yr{color:var(--muted); font-family:var(--mono); font-size:11px}
+  /* monitor two-column */
+  .mongrid{display:grid; grid-template-columns:1.7fr 1fr; gap:16px; margin-bottom:16px; align-items:start}
+  @media(max-width:900px){.mongrid{grid-template-columns:1fr}}
+  .mongrid .board-panel{margin-bottom:0}
+  .sig{display:flex; gap:11px; align-items:flex-start; padding:11px 16px; border-bottom:1px solid var(--surface-2)}
+  .sig:last-child{border-bottom:0}
+  .sig .d{width:7px; height:7px; border-radius:50%; margin-top:4px; flex:0 0 auto; background:var(--muted)}
+  .sig .d.hi{background:var(--red); box-shadow:0 0 7px rgba(240,97,109,.45)}
+  .sig .d.mid{background:var(--amber)}
+  .sig .sx b{display:block; color:var(--text); font-size:12.5px; font-weight:600; letter-spacing:-.01em}
+  .sig .sx span{display:block; color:var(--muted); font-size:11px; font-family:var(--mono); margin-top:2px; line-height:1.4}
 
   /* grid */
   .grid{display:grid; grid-template-columns:1.55fr 1fr; gap:20px; padding-bottom:56px}
   @media(max-width:900px){.grid{grid-template-columns:1fr}}
 
-  .panel{background:var(--surface); border:1px solid var(--border);
-    border-radius:var(--r-card); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px)}
+  .panel{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-card)}
   .panel.console{box-shadow:none}
   .phead{display:flex; align-items:center; gap:10px; padding:13px 16px;
     border-bottom:1px solid var(--border)}
@@ -274,33 +293,20 @@
         <svg class="mark" viewBox="0 0 319 355" width="26" height="29" aria-hidden="true"><path d="M155.277 22.1028C196.801 20.6064 237.251 35.4952 267.899 63.5559C298.488 91.435 316.682 130.372 318.441 171.722C320.022 212.76 305.011 252.706 276.798 282.549C247.018 314.459 207.776 331.358 164.366 332.91C164.303 332.915 164.242 332.917 164.179 332.922C122.143 334.252 80.3782 318.535 49.6678 290.153C19.1944 262.244 1.30241 223.199 0.0623749 181.896C-1.09431 141.391 13.8756 102.084 41.6815 72.6096C71.979 39.988 110.41 23.8389 154.604 22.1565C154.827 22.1389 155.052 22.1206 155.277 22.1028ZM90.0887 209.914C63.7505 219.859 52.4244 251.875 61.868 277.454C68.4616 295.317 87.05 307.401 103.817 314.806C111.613 318.256 119.72 320.951 128.029 322.858C137.128 324.924 146.411 326.075 155.74 326.293C155.895 317.228 155.932 309.388 154.72 300.304C151.28 274.6 138.851 250.526 120.999 231.861C113.696 224.224 104.42 216.888 95.0428 211.997C94.0164 211.462 91.1413 210.062 90.0887 209.914ZM228.217 209.894C202.034 221.504 181.246 247.217 170.994 273.571C163.744 292.207 162.502 306.737 162.818 326.293C173.096 325.909 180.92 325.114 191.034 322.93C213.309 317.868 239.857 305.762 252.52 285.936C267.154 263.023 259.512 227.827 236.205 213.49C234.134 212.214 230.607 210.429 228.217 209.894ZM159.361 63.4954C153.382 95.5386 135.128 123.982 108.489 142.767C87.3497 157.454 62.7581 165.354 37.1464 166.863C27.155 167.451 17.1015 167.131 7.08874 167.214C6.30046 174.165 6.49033 178.412 6.88952 185.327C18.8948 185.313 30.867 185.011 42.826 186.085C73.1542 188.808 101.651 201.328 123.295 222.939C138.708 238.548 150.073 257.687 156.398 278.691C157.705 283.044 158.365 286.613 159.343 290.994C160.961 284.498 161.496 280.607 163.81 273.845C173.586 244.825 193.255 220.165 219.374 204.178C236.937 193.602 258.264 187.257 278.648 185.831C289.456 185.074 300.592 185.323 311.456 185.321C312.265 180.053 311.921 172.497 311.431 167.191C299.76 167.205 288.021 167.498 276.399 166.5C246.162 163.906 216.261 151.394 194.667 129.794C178.575 113.696 166.752 92.4571 160.984 70.4632C160.485 68.5597 160.023 65.1579 159.361 63.4954ZM162.811 28.7532C162.713 36.3768 162.638 42.3517 163.496 50.0296C166.437 76.5788 178.106 101.401 196.678 120.601C203.871 127.973 215.978 137.945 225.662 141.646C233.834 139.273 241.178 134.659 246.858 128.324C266.063 106.68 264.151 75.014 242.085 56.2913C219.852 37.4245 191.482 29.5779 162.811 28.7532ZM155.732 28.7591C153.838 28.8076 151.894 28.8288 150.012 28.9944C122.328 30.7429 89.3091 40.8781 70.4784 62.3059C61.9143 72.0775 57.6633 84.8953 58.6903 97.8479C59.5511 110.009 65.2245 122.842 74.3192 131.062C79.9191 136.077 85.6347 139.639 92.9667 141.639C111.46 133.055 126.943 117.492 137.698 100.372C151.345 78.6496 156.891 54.2575 155.732 28.7591Z" fill="currentColor"/></svg>
         <span class="bname">Quorum</span><small>/ on-chain threat intel</small>
       </div>
-      <div class="stack">powered by <b>Nebius Token Factory</b> × <b>Emergence CRAFT</b></div>
-    </div>
-
-    <header class="hero">
-      <p class="kicker">Autonomous Web3 threat-detection agent</p>
-      <h1>Quorum finds the scams. On its own.</h1>
-      <p class="sub">An autonomous agent continuously triages every token on Ethereum, dispatches
-        itself to the threats, maps the operators behind them, and blocks them across wallets and
-        exchanges — before anyone gets hurt. The box below is just the analyst override.</p>
-
-      <div class="cmd">
-        <label class="field">
-          <span>0x</span>
-          <input id="token" spellcheck="false"
-            value="0008a519b43d1dd0d81e08b4d569c769524e0593" />
-        </label>
+      <nav class="nav">
+        <a data-v="overview" class="active" onclick="showView('overview')">Monitor</a>
+        <a data-v="investigation" onclick="showView('investigation')">Investigate</a>
+        <a data-v="campaigns" onclick="showView('campaigns');loadOperators()">Campaigns</a>
+        <a data-v="protect" onclick="showView('protect')">Protect</a>
+      </nav>
+      <div class="appbar-right">
+        <label class="field"><span>0x</span><input id="token" spellcheck="false"
+          value="0008a519b43d1dd0d81e08b4d569c769524e0593" /></label>
         <button class="run" id="run">Investigate</button>
+        <span class="onduty"><span class="pulse"></span>on duty</span>
       </div>
-      <div class="chips" id="chips"></div>
-    </header>
-
-    <nav class="nav">
-      <a data-v="overview" class="active" onclick="showView('overview')">Monitor</a>
-      <a data-v="investigation" onclick="showView('investigation')">Investigate</a>
-      <a data-v="campaigns" onclick="showView('campaigns');loadOperators()">Campaigns</a>
-      <a data-v="protect" onclick="showView('protect')">Protect · API</a>
-    </nav>
+    </div>
+    <div class="chips" id="chips" style="display:none"></div>
 
     <div class="view" id="v-overview">
     <div class="stats" id="stats">
@@ -309,19 +315,33 @@
       <div class="stat"><div class="n">—</div><div class="l">loading…</div></div>
     </div>
 
+    <div class="mongrid">
+    <section class="panel board-panel">
+      <div class="phead">
+        <div class="ptitle">autonomous threat feed</div>
+        <button class="dispatch" onclick="autoDispatch()">Dispatch agent → #1 threat</button>
+        <div class="live on"><span class="pulse"></span><span>agent on duty</span></div>
+      </div>
+      <div id="board"><div class="gempty" style="height:110px">scanning the chain for high-risk tokens…</div></div>
+    </section>
+
+    <section class="panel sigs-panel">
+      <div class="phead"><div class="ptitle">detection signals</div>
+        <div class="live"><span class="yr">scored per token</span></div></div>
+      <div class="sigs">
+        <div class="sig"><span class="d hi"></span><div class="sx"><b>Holder concentration</b><span>top-1 address' share of token supply</span></div></div>
+        <div class="sig"><span class="d hi"></span><div class="sx"><b>Deployer dominance</b><span>creator wallet retains the float</span></div></div>
+        <div class="sig"><span class="d mid"></span><div class="sx"><b>Lifecycle collapse</b><span>volume pumps, then dies inside a day</span></div></div>
+        <div class="sig"><span class="d mid"></span><div class="sx"><b>Wash-trading</b><span>circular self-transfers inflate activity</span></div></div>
+        <div class="sig"><span class="d hi"></span><div class="sx"><b>Bytecode clone-family</b><span>identical contract code across a rug-kit</span></div></div>
+      </div>
+    </section>
+    </div>
+
     <section class="panel act-panel">
       <div class="phead"><div class="ptitle">chain activity · transactions / year</div>
         <div class="live"><span class="yr">2015 – 2024</span></div></div>
       <div id="act"></div>
-    </section>
-
-    <section class="panel board-panel">
-      <div class="phead">
-        <div class="ptitle">autonomous threat feed</div>
-        <button class="dispatch" onclick="autoDispatch()">⚡ Dispatch agent → #1 threat</button>
-        <div class="live on"><span class="pulse"></span><span>agent on duty</span></div>
-      </div>
-      <div id="board"><div class="gempty" style="height:120px">◍ scanning the chain for high-risk tokens…</div></div>
     </section>
     </div><!--/overview-->
 
@@ -339,7 +359,7 @@
       <section class="panel verdict">
         <div class="phead"><div class="ptitle">verdict</div></div>
         <div class="vbody" id="vbody">
-          <div class="vempty"><div class="big">🕵️</div>The verdict lands here — <b style="color:var(--text)">RUG / SUSPICIOUS / LEGIT</b>, a risk gauge, the evidence, and a shippable detection rule — once the agent finishes its investigation.</div>
+          <div class="vempty">The verdict lands here — <b style="color:var(--text)">RUG / SUSPICIOUS / LEGIT</b>, a risk gauge, the evidence, and a shippable detection rule — once the agent finishes its investigation.</div>
         </div>
       </section>
     </div>
@@ -486,8 +506,8 @@ function renderActivity(){
     bars+=`<text x="${(x+w/2).toFixed(1)}" y="${H-8}" text-anchor="middle" fill="#5b5e66" font-size="10.5" font-family="ui-monospace,monospace">${d[0]}</text>`;});
   const el=document.getElementById('act');
   if(el) el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}"><defs>`
-    +`<linearGradient id="actg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#37e0a0" stop-opacity=".72"/>`
-    +`<stop offset="1" stop-color="#37e0a0" stop-opacity=".72"/></linearGradient>`
+    +`<linearGradient id="actg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4c525b" stop-opacity=".95"/>`
+    +`<stop offset="1" stop-color="#383d45" stop-opacity=".95"/></linearGradient>`
     +`<pattern id="dith" width="4" height="4" patternUnits="userSpaceOnUse">`
     +`<circle cx="1" cy="1" r="0.9" fill="#0a0c11" opacity="0.5"/>`
     +`<circle cx="3" cy="3" r="0.9" fill="#0a0c11" opacity="0.5"/></pattern></defs>${bars}</svg>`;

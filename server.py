@@ -241,11 +241,11 @@ async def api_overview() -> dict:
     JOIN "CRYPTO"."CRYPTO_ETHEREUM"."CONTRACTS" c
       ON tt."token_address"=c."address" AND c."is_erc20"=TRUE
     GROUP BY tt."token_address"
-    HAVING COUNT(*) >= 200
-      AND ROUND(MAX(TRY_TO_DOUBLE(tt."value"))/NULLIF(SUM(TRY_TO_DOUBLE(tt."value")),0)*100,1) > 70
-      AND (MAX(tt."block_timestamp")-MIN(tt."block_timestamp"))/(1000000.0*86400) < 3
+    HAVING COUNT(*) >= 80
+      AND ROUND(MAX(TRY_TO_DOUBLE(tt."value"))/NULLIF(SUM(TRY_TO_DOUBLE(tt."value")),0)*100,1) > 45
+      AND (MAX(tt."block_timestamp")-MIN(tt."block_timestamp"))/(1000000.0*86400) < 12
     ORDER BY concentration DESC, transfers DESC
-    LIMIT 12
+    LIMIT 14
     """
     async with Craft() as craft:
         res = await craft.execute_query(CONNECTION, board_sql, max_rows=20)

@@ -44,6 +44,15 @@
   .rub{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:30px;max-width:920px}
   .rub div{font-family:var(--mono);font-size:16px;color:var(--muted-2);border-left:2px solid var(--blue);padding:4px 0 4px 14px}
   .rub b{color:var(--text)}
+  @media print{
+    @page{ size:1280px 720px; margin:0; }
+    *{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+    html,body{ height:auto; overflow:visible; background:var(--bg); }
+    .brand,.pg,.hint{ display:none !important; }
+    .slide{ position:relative !important; inset:auto !important; display:flex !important;
+      opacity:1 !important; width:1280px; height:720px; break-after:page; page-break-after:always; }
+    .slide:last-child{ break-after:auto; page-break-after:auto; }
+  }
 </style>
 </head>
 <body>
@@ -143,7 +152,10 @@
   addEventListener('keydown',e=>{ if(e.key==='ArrowRight'||e.key===' ')show(i+1);
     if(e.key==='ArrowLeft')show(i-1); });
   addEventListener('click',e=>{ if(e.clientX > innerWidth*0.5) show(i+1); else show(i-1); });
-  show(0);
+  const _q=new URLSearchParams(location.search);
+  if(_q.has('slide')){ show(+_q.get('slide')||0);
+    document.querySelectorAll('.pg,.hint').forEach(e=>e.style.display='none'); }
+  else { show(0); }
 </script>
 </body>
 </html>
