@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quorum — Deck</title>
+<style>
+  :root{--bg:#0a0b0d;--surface:#14171c;--border:#242932;--text:#f3f5f8;--muted:#7c838d;
+    --muted-2:#a7adb6;--blue:#4d9fff;--red:#f05d68;--green:#3ecf8e;
+    --sans:-apple-system,"Inter","Segoe UI",system-ui,sans-serif;
+    --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,monospace}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
+    padding:9vh 10vw;opacity:0;transition:opacity .35s}
+  .slide.on{display:flex;opacity:1}
+  .kick{font-family:var(--mono);font-size:14px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--blue);margin:0 0 22px}
+  h1{font-size:66px;line-height:1.02;letter-spacing:-.035em;margin:0;font-weight:600;text-wrap:balance}
+  h2{font-size:46px;line-height:1.08;letter-spacing:-.03em;margin:0 0 18px;font-weight:600;text-wrap:balance}
+  p{color:var(--muted-2);font-size:22px;line-height:1.55;max-width:900px;margin:14px 0 0}
+  p b{color:var(--text)}
+  .sub{color:var(--muted);font-size:20px;margin-top:24px}
+  .row{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:34px;max-width:1000px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px}
+  .card .t{font-family:var(--mono);font-size:13px;color:var(--blue);letter-spacing:.05em}
+  .card h3{font-size:22px;margin:10px 0 6px;font-weight:600}
+  .card p{font-size:16px;color:var(--muted);margin:0}
+  .huge{font-family:var(--mono);font-size:80px;font-weight:600;letter-spacing:-.04em;line-height:1}
+  .huge.red{color:var(--red)}
+  .metrics{display:flex;gap:44px;margin-top:38px;flex-wrap:wrap}
+  .metrics .m .n{font-family:var(--mono);font-size:46px;font-weight:600;letter-spacing:-.03em}
+  .metrics .m .n.red{color:var(--red)}
+  .metrics .m .l{color:var(--muted);font-family:var(--mono);font-size:14px;margin-top:6px}
+  .brand{position:fixed;top:32px;left:40px;display:flex;align-items:center;gap:9px;font-weight:600;
+    font-size:15px;z-index:10}
+  .pg{position:fixed;bottom:28px;right:40px;font-family:var(--mono);font-size:13px;color:var(--muted);z-index:10}
+  .hint{position:fixed;bottom:28px;left:40px;font-family:var(--mono);font-size:12px;color:#3a3d42;z-index:10}
+  .chips{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
+  .chip{font-family:var(--mono);font-size:15px;color:var(--muted-2);border:1px solid var(--border);
+    border-radius:99px;padding:10px 18px}
+  .chip b{color:var(--text)}
+  .rub{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:30px;max-width:920px}
+  .rub div{font-family:var(--mono);font-size:16px;color:var(--muted-2);border-left:2px solid var(--blue);padding:4px 0 4px 14px}
+  .rub b{color:var(--text)}
+</style>
+</head>
+<body>
+  <div class="brand">
+    <svg viewBox="0 0 319 355" width="20" height="22"><path d="M155.277 22.1C196.8 20.6 237.3 35.5 267.9 63.6C298.5 91.4 316.7 130.4 318.4 171.7C320 212.8 305 252.7 276.8 282.5C247 314.5 207.8 331.4 164.4 332.9C164.3 332.9 164.2 332.9 164.2 332.9C122.1 334.3 80.4 318.5 49.7 290.2C19.2 262.2 1.3 223.2 0.06 181.9C-1.1 141.4 13.9 102.1 41.7 72.6C72 40 110.4 23.8 154.6 22.2C154.8 22.1 155.1 22.1 155.277 22.1ZM159.4 63.5C153.4 95.5 135.1 124 108.5 142.8C87.3 157.5 62.8 165.4 37.1 166.9C27.2 167.5 17.1 167.1 7.1 167.2C6.3 174.2 6.5 178.4 6.9 185.3C18.9 185.3 30.9 185 42.8 186.1C73.2 188.8 101.7 201.3 123.3 222.9C138.7 238.5 150.1 257.7 156.4 278.7C157.7 283 158.4 286.6 159.3 291C161 284.5 161.5 280.6 163.8 273.8C173.6 244.8 193.3 220.2 219.4 204.2C236.9 193.6 258.3 187.3 278.6 185.8C289.5 185.1 300.6 185.3 311.5 185.3C312.3 180.1 311.9 172.5 311.4 167.2C299.8 167.2 288 167.5 276.4 166.5C246.2 163.9 216.3 151.4 194.7 129.8C178.6 113.7 166.8 92.5 161 70.5C160.5 68.6 160 65.2 159.4 63.5Z" fill="#f3f5f8"/></svg>
+    Quorum
+  </div>
+  <div class="pg" id="pg"></div>
+  <div class="hint">← → to navigate</div>
+
+  <section class="slide on">
+    <p class="kick">Autonomous Web3 threat intelligence</p>
+    <h1>Quorum finds the scams. On its own.</h1>
+    <p class="sub">An autonomous agent · Emergence CRAFT × Nebius Token Factory</p>
+  </section>
+
+  <section class="slide">
+    <p class="kick">The problem</p>
+    <h2>$17B lost to crypto scams last year.</h2>
+    <p>Finding a single rug takes a compliance analyst <b>hours</b>. Millions of tokens,
+      endless new deploys, human teams that can't keep up. Screening is a legal requirement —
+      and today's tooling is dashboards a person has to operate.</p>
+  </section>
+
+  <section class="slide">
+    <p class="kick">What it is</p>
+    <h2>An autonomous SOC for Web3.</h2>
+    <div class="row">
+      <div class="card"><div class="t">Detect</div><h3>Always on</h3><p>Scores every token itself — no human input.</p></div>
+      <div class="card"><div class="t">Investigate</div><h3>Goes deep</h3><p>Dispatches itself to threats and writes its own SQL.</p></div>
+      <div class="card"><div class="t">Campaigns</div><h3>Unmasks operators</h3><p>Resolves the rug-kits behind whole fleets of scams.</p></div>
+      <div class="card"><div class="t">Protect</div><h3>Blocks at the edge</h3><p>A risk API wallets & exchanges call before every tx.</p></div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <p class="kick">Monitor</p>
+    <h2>It's already watching the whole chain.</h2>
+    <div class="metrics">
+      <div class="m"><div class="n">24.9M</div><div class="l">transactions analyzed</div></div>
+      <div class="m"><div class="n">65,639</div><div class="l">tokens monitored</div></div>
+      <div class="m"><div class="n">20.8M</div><div class="l">contracts fingerprinted</div></div>
+    </div>
+    <p>The autonomous threat feed is the agent's own output — every red row is a token it
+      already distrusts. It dispatches itself to the worst one.</p>
+  </section>
+
+  <section class="slide">
+    <p class="kick">Investigate</p>
+    <h2>The agent writes its own SQL through CRAFT.</h2>
+    <p>It orients in the semantic layer, then measures holder concentration, deployer
+      dominance, wash-trading, and a lifecycle that spikes and collapses in a day — the
+      pump-then-abandon rug shape. Then a verdict, a risk gauge, and a <b>shippable
+      detection rule.</b></p>
+    <div class="chips"><span class="chip"><b>RUG · 95/100</b></span><span class="chip">multi-step reasoning</span><span class="chip">self-correction</span></div>
+  </section>
+
+  <section class="slide">
+    <p class="kick">The discovery</p>
+    <h2>Detection → the whole operation.</h2>
+    <div class="huge red">15 operators · 319 rugs · 24,639 victims</div>
+    <p>Quorum entity-resolves all 65k tokens by bytecode fingerprint and unmasks the
+      <b>rug-kits</b> mass-producing scams — one fingerprint, a whole fleet — as a link chart.
+      Cross-referenced with real rug behavior, so it's defensible.</p>
+  </section>
+
+  <section class="slide">
+    <p class="kick">Protect</p>
+    <h2>One API. Every transaction. One word: <span style="color:var(--red)">BLOCK</span>.</h2>
+    <p>Wallets, exchanges and protocols call the risk API before every transaction. One
+      integration screens every user, on every token, <b>automatically</b> — not one address
+      at a time. This is how it protects at scale.</p>
+  </section>
+
+  <section class="slide">
+    <p class="kick">Why it wins</p>
+    <h2>Great agent. Great product. Real enterprise job.</h2>
+    <div class="rub">
+      <div><b>CRAFT depth</b> — semantic-layer orientation, bytecode clustering, multi-table</div>
+      <div><b>Insight</b> — a chain-scale discovery, not "this looks bad"</div>
+      <div><b>Agent architecture</b> — self-dispatch, pivot to operator, verify</div>
+      <div><b>Story</b> — autonomous SOC, four coherent pillars, live link chart</div>
+    </div>
+    <div class="chips"><span class="chip">Reasoning · <b>Nebius Token Factory</b></span><span class="chip">Data · <b>Emergence CRAFT</b></span></div>
+  </section>
+
+  <section class="slide" style="align-items:flex-start">
+    <h1>Twenty-five million transactions.<br>One word. <span style="color:var(--red)">Block.</span></h1>
+    <p class="sub">Quorum — autonomous on-chain threat intelligence.</p>
+  </section>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')]; let i=0;
+  const pg=document.getElementById('pg');
+  function show(n){ i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('on',k===i)); pg.textContent=(i+1)+' / '+slides.length; }
+  addEventListener('keydown',e=>{ if(e.key==='ArrowRight'||e.key===' ')show(i+1);
+    if(e.key==='ArrowLeft')show(i-1); });
+  addEventListener('click',e=>{ if(e.clientX > innerWidth*0.5) show(i+1); else show(i-1); });
+  show(0);
+</script>
+</body>
+</html>

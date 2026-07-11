@@ -898,21 +898,5 @@ renderActivity();
   frame();
 })();
 </script>
-<!-- Agentation: annotate the live UI, agent picks up feedback (dev only) -->
-<script type="module">
-  try {
-    const [{ default: React }, { createRoot }, mod] = await Promise.all([
-      import('https://esm.sh/react@19.2.7'),
-      import('https://esm.sh/react-dom@19.2.7/client'),
-      import('https://esm.sh/agentation@3.0.2?deps=react@19.2.7,react-dom@19.2.7')
-    ]);
-    const Agentation = mod.Agentation || mod.default;
-    const host = document.createElement('div');
-    host.id = 'agentation-root';
-    document.body.appendChild(host);
-    createRoot(host).render(React.createElement(Agentation, { endpoint: 'http://localhost:4747' }));
-    console.log('[agentation] toolbar mounted');
-  } catch (e) { console.warn('[agentation] failed to load', e); }
-</script>
 </body>
 </html>
