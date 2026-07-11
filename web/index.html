@@ -6,8 +6,8 @@
 <title>Quorum — On-Chain Threat Intelligence</title>
 <style>
   :root{
-    --bg:#0b0b0b; --surface:#131313; --surface-2:#191919;
-    --border:#26272d; --border-soft:rgba(255,255,255,.08);
+    --bg:#0b0b0b; --surface:rgba(18,20,27,.58); --surface-solid:#12141b; --surface-2:rgba(38,41,52,.6);
+    --border:rgba(90,110,150,.22); --border-soft:rgba(255,255,255,.08);
     --text:#ffffff; --muted:#868f97; --muted-2:#acadae;
     --blue:#479ffa; --amber:#ffa16c; --green:#4ebe96; --red:#e24756;
     --sans:-apple-system,"Inter","Segoe UI",system-ui,sans-serif;
@@ -43,6 +43,14 @@
   .stack{color:var(--muted); font-size:12px; font-family:var(--mono)}
   .stack b{color:var(--muted-2); font-weight:500}
 
+  /* view nav */
+  .nav{display:flex; gap:6px; margin:16px 0 2px}
+  .nav a{cursor:pointer; font-family:var(--mono); font-size:12.5px; color:var(--muted);
+    padding:8px 15px; border-radius:99px; border:1px solid transparent; transition:.15s; user-select:none}
+  .nav a:hover{color:var(--text)}
+  .nav a.active{color:var(--text); background:var(--surface); border-color:var(--border);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px)}
+
   /* hero */
   header.hero{padding:44px 0 24px}
   .kicker{font-family:var(--mono); font-size:11px; letter-spacing:.14em;
@@ -55,7 +63,8 @@
   .cmd{display:flex; gap:10px; margin:24px 0 14px; flex-wrap:wrap}
   .field{flex:1 1 420px; display:flex; align-items:center; gap:10px;
     background:var(--surface); border:1px solid var(--border);
-    border-radius:var(--r-in); padding:0 14px; height:46px}
+    border-radius:var(--r-in); padding:0 14px; height:46px;
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px)}
   .field:focus-within{border-color:var(--blue)}
   .field span{color:var(--muted); font-family:var(--mono); font-size:12px}
   .field input{flex:1; background:transparent; border:0; outline:0; color:var(--text);
@@ -76,7 +85,7 @@
   .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:26px 0 22px}
   @media(max-width:720px){.stats{grid-template-columns:1fr}}
   .stat{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-card);
-    padding:18px 20px}
+    padding:18px 20px; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px)}
   .stat .n{font-family:var(--mono); font-size:30px; font-weight:600; letter-spacing:-.03em; color:var(--text)}
   .stat .l{color:var(--muted); font-size:12px; margin-top:4px; font-family:var(--mono)}
   .stat .pulse{display:inline-block; width:7px;height:7px;border-radius:50%;background:var(--green);
@@ -108,8 +117,8 @@
   @media(max-width:900px){.grid{grid-template-columns:1fr}}
 
   .panel{background:var(--surface); border:1px solid var(--border);
-    border-radius:var(--r-card)}
-  .panel.console{box-shadow:rgba(0,0,0,.8) 0 0 44px 0}
+    border-radius:var(--r-card); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px)}
+  .panel.console{box-shadow:rgba(0,0,0,.55) 0 0 44px 0}
   .phead{display:flex; align-items:center; gap:10px; padding:13px 16px;
     border-bottom:1px solid var(--border)}
   .traffic{display:flex; gap:6px}
@@ -232,6 +241,12 @@
       <div class="chips" id="chips"></div>
     </header>
 
+    <nav class="nav">
+      <a data-v="overview" class="active" onclick="showView('overview')">Overview</a>
+      <a data-v="investigation" onclick="showView('investigation')">Investigation</a>
+    </nav>
+
+    <div class="view" id="v-overview">
     <div class="stats" id="stats">
       <div class="stat"><div class="n">—</div><div class="l">loading…</div></div>
       <div class="stat"><div class="n">—</div><div class="l">loading…</div></div>
@@ -251,7 +266,9 @@
       </div>
       <div id="board"><div class="gempty" style="height:120px">◍ scanning the chain for high-risk tokens…</div></div>
     </section>
+    </div><!--/overview-->
 
+    <div class="view" id="v-investigation" style="display:none">
     <div class="grid">
       <section class="panel console">
         <div class="phead">
@@ -286,6 +303,7 @@
       <div id="graph"><div class="gempty">The token's transfer network renders here — mint, holders, and any known mixer / exchange / DEX counterparties flagged.</div></div>
       <div class="legend" id="legend"></div>
     </section>
+    </div><!--/investigation-->
 
     <footer>
       <span>Data: Spider 2.0 Ethereum sample · 25M txns · read-only Snowflake via CRAFT</span>
@@ -311,13 +329,17 @@ function renderActivity(){
     ['2023',3790634],['2024',1711331]];
   const W=1180,H=118,pad=12,n=data.length,bw=W/n,max=Math.max(...data.map(d=>d[1]));
   let bars='';
-  data.forEach((d,i)=>{const h=(d[1]/max)*(H-42),x=i*bw+pad,y=H-26-h;
-    bars+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(bw-2*pad).toFixed(1)}" height="${Math.max(2,h).toFixed(1)}" rx="3" fill="url(#actg)"/>`;
-    bars+=`<text x="${(x+(bw-2*pad)/2).toFixed(1)}" y="${H-8}" text-anchor="middle" fill="#5b5e66" font-size="10.5" font-family="ui-monospace,monospace">${d[0]}</text>`;});
+  data.forEach((d,i)=>{const h=(d[1]/max)*(H-42),x=i*bw+pad,y=H-26-h,w=bw-2*pad;
+    bars+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(2,h).toFixed(1)}" rx="3" fill="url(#actg)"/>`;
+    bars+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(2,h).toFixed(1)}" rx="3" fill="url(#dith)"/>`;
+    bars+=`<text x="${(x+w/2).toFixed(1)}" y="${H-8}" text-anchor="middle" fill="#5b5e66" font-size="10.5" font-family="ui-monospace,monospace">${d[0]}</text>`;});
   const el=document.getElementById('act');
   if(el) el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}"><defs>`
-    +`<linearGradient id="actg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#479ffa" stop-opacity=".85"/>`
-    +`<stop offset="1" stop-color="#479ffa" stop-opacity=".16"/></linearGradient></defs>${bars}</svg>`;
+    +`<linearGradient id="actg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5aa8ff" stop-opacity=".95"/>`
+    +`<stop offset="1" stop-color="#479ffa" stop-opacity=".2"/></linearGradient>`
+    +`<pattern id="dith" width="4" height="4" patternUnits="userSpaceOnUse">`
+    +`<circle cx="1" cy="1" r="0.9" fill="#0a0c11" opacity="0.5"/>`
+    +`<circle cx="3" cy="3" r="0.9" fill="#0a0c11" opacity="0.5"/></pattern></defs>${bars}</svg>`;
 }
 async function loadOverview(){
   try{
@@ -340,8 +362,13 @@ async function loadOverview(){
     renderActivity();
   }catch(e){document.getElementById('board').innerHTML='<div class="gempty" style="height:100px">Threat board unavailable.</div>';}
 }
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>{v.style.display=(v.id==='v-'+name)?'':'none';});
+  document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('active', a.dataset.v===name));
+}
 function investigateToken(tok){
   document.getElementById('token').value=tok.replace(/^0x/,'');
+  showView('investigation');
   window.scrollTo({top:0,behavior:'smooth'});
   run();
 }
@@ -509,6 +536,7 @@ function renderGraph(data){
 function run(){
   if(es){es.close();}
   const tok='0x'+document.getElementById('token').value.replace(/^0x/,'').trim();
+  showView('investigation');
   logEl.innerHTML=''; steps=0;
   loadSiblings(tok);
   loadGraph(tok);
