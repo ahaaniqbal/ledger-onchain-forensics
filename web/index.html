@@ -16,20 +16,21 @@
   }
   *{box-sizing:border-box}
   html,body{margin:0}
+  html{background:#07080b}
   body{
-    background:var(--bg); color:var(--text); font-family:var(--sans);
-    font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
-    background-image:radial-gradient(1200px 520px at 50% -8%, rgba(71,159,250,.08), transparent 70%);
-    position:relative;
+    background:transparent; color:var(--text); font-family:var(--sans);
+    font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; position:relative;
   }
-  /* engineered grid backdrop */
-  body::before{content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  /* cinematic interactive shader backdrop */
+  #fx{position:fixed; inset:0; width:100vw; height:100vh; z-index:0; display:block; pointer-events:none}
+  /* faint engineered grid over the shader */
+  body::after{content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
     background-image:
-      linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
-    background-size:46px 46px;
-    -webkit-mask-image:radial-gradient(circle at 50% 6%, #000, transparent 78%);
-    mask-image:radial-gradient(circle at 50% 6%, #000, transparent 78%);}
+      linear-gradient(rgba(120,170,255,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120,170,255,.03) 1px, transparent 1px);
+    background-size:48px 48px;
+    -webkit-mask-image:radial-gradient(circle at 50% 4%, #000, transparent 82%);
+    mask-image:radial-gradient(circle at 50% 4%, #000, transparent 82%);}
   .wrap{max-width:1220px; margin:0 auto; padding:0 24px; position:relative; z-index:1}
 
   /* top bar */
@@ -203,6 +204,7 @@
 </style>
 </head>
 <body>
+  <canvas id="fx"></canvas>
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
@@ -530,6 +532,63 @@ runBtn.onclick=run;
 document.getElementById('token').addEventListener('keydown',e=>{if(e.key==='Enter')run();});
 loadOverview();
 renderActivity();
+
+/* ---- interactive WebGL shader backdrop (Palantir-grade, no libraries) ---- */
+(function(){
+  const cv=document.getElementById('fx');
+  const gl=cv.getContext('webgl')||cv.getContext('experimental-webgl');
+  if(!gl){cv.style.display='none';return;}
+  const VS='attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+  const FS=`precision highp float;
+    uniform vec2 u_res; uniform float u_time; uniform vec2 u_mouse;
+    float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+    float noise(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.-2.*f);
+      return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x),u.y);}
+    float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.02;a*=.5;}return v;}
+    void main(){
+      vec2 uv=(gl_FragCoord.xy-.5*u_res)/u_res.y;
+      vec2 m=(u_mouse-.5*u_res)/u_res.y;
+      float t=u_time*.05;
+      vec2 q=vec2(fbm(uv*1.8+t), fbm(uv*1.8-t+7.3));
+      float f=fbm(uv*2.6+q*1.7+vec2(t,-t));
+      float ribbon=smoothstep(.36,.72,f);
+      vec3 base=vec3(.015,.022,.038);
+      vec3 blue=vec3(.10,.42,.98);
+      vec3 cyan=vec3(.20,.70,1.0);
+      vec3 col=base+blue*ribbon*.14+cyan*pow(ribbon,3.)*.05;
+      float d=length(uv-m);
+      col+=cyan*exp(-d*3.2)*.16;           // cursor bloom
+      col+=blue*exp(-d*9.)*.10;
+      vec2 g=abs(fract(uv*7.)-.5);
+      col+=blue*smoothstep(.47,.5,max(g.x,g.y))*.015;   // faint grid
+      float vig=1.-.55*dot(uv*vec2(u_res.x/u_res.y,1.)*.62,uv*.62);
+      col*=clamp(vig,0.,1.);
+      gl_FragColor=vec4(col,1.);
+    }`;
+  function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);return o;}
+  const prog=gl.createProgram();
+  gl.attachShader(prog,sh(gl.VERTEX_SHADER,VS));
+  gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FS));
+  gl.linkProgram(prog); gl.useProgram(prog);
+  const b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  const loc=gl.getAttribLocation(prog,'p'); gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+  const uRes=gl.getUniformLocation(prog,'u_res'),uTime=gl.getUniformLocation(prog,'u_time'),
+        uMouse=gl.getUniformLocation(prog,'u_mouse');
+  const DPR=Math.min(window.devicePixelRatio||1,1.5)*0.55;   // low-res for smooth perf
+  let mx=0,my=0;
+  function resize(){cv.width=Math.max(2,Math.floor(innerWidth*DPR));
+    cv.height=Math.max(2,Math.floor(innerHeight*DPR));gl.viewport(0,0,cv.width,cv.height);
+    mx=cv.width*0.5; my=cv.height*0.62;}
+  addEventListener('resize',resize); resize();
+  addEventListener('mousemove',e=>{mx=e.clientX*DPR; my=(innerHeight-e.clientY)*DPR;});
+  const t0=performance.now();
+  function frame(){const t=(performance.now()-t0)/1000;
+    gl.uniform2f(uRes,cv.width,cv.height); gl.uniform1f(uTime,t); gl.uniform2f(uMouse,mx,my);
+    gl.drawArrays(gl.TRIANGLES,0,3); requestAnimationFrame(frame);}
+  frame();
+})();
 </script>
 </body>
 </html>
