@@ -126,6 +126,24 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "craft_operator_scan",
+            "description": (
+                "Campaign-scale escalation: given a token, resolve its ENTIRE "
+                "bytecode-fingerprint cluster chain-wide (the 'rug-kit' operator) "
+                "and return how many tokens share that exact code, how many are "
+                "rug-shaped, and total wallets hit. Reveals whether a token is one "
+                "of a whole fleet. Call this after the clone check for the big picture."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {"token": {"type": "string", "description": "token address (0x…)"}},
+                "required": ["token"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "craft_sample_data",
             "description": (
                 "Preview rows of a table. table_fqn is 3-part WITHOUT the slug: "
@@ -204,6 +222,25 @@ async def dispatch(craft: Craft, name: str, args: dict) -> dict:
         LEFT JOIN "CRYPTO"."CRYPTO_ETHEREUM"."TOKEN_TRANSFERS" t
           ON LOWER(t."token_address") = LOWER(fam.addr)
         GROUP BY fam.addr, fam.ts ORDER BY deployed
+        """
+        return await craft.execute_query(CONNECTION, sql)
+    if name == "craft_operator_scan":
+        tok = str(args.get("token", "")).strip().lower()
+        sql = f"""
+        WITH t AS (SELECT MD5("bytecode") AS fp FROM "CRYPTO"."CRYPTO_ETHEREUM"."CONTRACTS"
+                   WHERE LOWER("address")='{tok}' AND "is_erc20"=TRUE),
+        erc AS (SELECT LOWER("address") AS addr FROM "CRYPTO"."CRYPTO_ETHEREUM"."CONTRACTS"
+                WHERE "is_erc20"=TRUE AND MD5("bytecode")=(SELECT fp FROM t)),
+        tt AS (SELECT LOWER("token_address") AS token, COUNT(DISTINCT "to_address") AS holders,
+                 (MAX("block_timestamp")-MIN("block_timestamp"))/(1000000.0*86400) AS life,
+                 MAX(TRY_TO_DOUBLE("value"))/NULLIF(SUM(TRY_TO_DOUBLE("value")),0) AS conc
+               FROM "CRYPTO"."CRYPTO_ETHEREUM"."TOKEN_TRANSFERS"
+               WHERE LOWER("token_address") IN (SELECT addr FROM erc) GROUP BY LOWER("token_address"))
+        SELECT (SELECT COUNT(*) FROM erc) AS cluster_tokens,
+          COUNT(tt.token) AS active_tokens,
+          SUM(CASE WHEN tt.conc>0.8 AND tt.life<3 THEN 1 ELSE 0 END) AS rug_tokens,
+          ROUND(SUM(tt.holders)) AS wallets_hit
+        FROM tt
         """
         return await craft.execute_query(CONNECTION, sql)
     if name == "craft_search_schema":

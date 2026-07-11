@@ -23,10 +23,15 @@ address and it:
    evidence, and a **parameterized detection rule a compliance team can ship.**
 
 ### The discovery that sets it apart
-On our demo token, Quorum didn't just flag a rug — it fingerprinted the bytecode
-and found the token is **1 of 3 identical-code ERC-20s all deployed on the same
-day (2023-10-19), all dead within a day.** That's a **serial rugger / scam
-factory**, surfaced autonomously. Detection → discovery.
+On a single token, Quorum doesn't just flag a rug — it fingerprints the bytecode
+and finds the token is **1 of 3 identical-code ERC-20s deployed the same day,
+all dead within a day** — a scam factory, surfaced autonomously.
+
+Then it goes **chain-scale.** Quorum entity-resolves **all 65,639 ERC-20
+contracts** by exact bytecode fingerprint and cross-references each cluster with
+real rug behavior, surfacing **15 "rug-kit" operators responsible for 319 rug
+tokens and 24,639 victim wallets** — rendered as Palantir-style operator→tokens
+link charts. Detection → discovery → **the whole operation.**
 
 ## How we built it
 - **Brain:** Nebius Token Factory (`nvidia/nemotron-3-super-120b-a12b`, OpenAI-compatible).

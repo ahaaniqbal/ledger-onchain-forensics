@@ -63,6 +63,10 @@ Contrast with LEGIT signals: many unique holders, sustained activity over time,
 distributed holdings, two-way trading.
 
 METHOD (multi-step — show your reasoning):
+  Step 0 ORIENT IN THE SEMANTIC LAYER FIRST: call `craft_search_schema` for the
+         concepts you'll need (e.g. "token transfers", "contract bytecode",
+         "holders") to locate the right tables/columns in CRAFT's catalog before
+         writing any SQL. Ground the investigation in the semantic layer.
   Step 1 Confirm the token exists in CONTRACTS; get deploy time & is_erc20.
   Step 2 Profile TOKEN_TRANSFERS for this token: total transfers, unique
          senders/receivers (holders), first/last transfer time, active lifespan.
@@ -87,12 +91,11 @@ concentration, deployer dominance, holder count) and reason about rug likelihood
 from those, separately from the later outcome. If you can see the later outcome
 (collapse), present it as validation: "early signal X predicted the later rug."
 
-MANDATORY BEFORE CONCLUDING: you MUST run the clone-family / serial-deployer
-bytecode check (Step 5) before writing the verdict — it is the highest-value
-signal. A token that shares identical bytecode with other short-lived tokens
-(especially same-day deployments) is part of a scam factory; this belongs in the
-verdict and pushes the risk score up materially. Do not output a verdict until
-you have checked it.
+MANDATORY BEFORE CONCLUDING: you MUST (a) run `craft_clone_check` (Step 5), then
+(b) run `craft_operator_scan` to escalate to campaign scale — is this token one
+of a chain-wide "rug-kit" fleet (N identical-bytecode tokens, M rug-shaped, W
+wallets hit)? These are the highest-value signals; both belong in the verdict and
+push the risk score up materially. Do not output a verdict until you have run both.
 
 OUTPUT (end with a clear verdict card):
   VERDICT: LIKELY RUG / SUSPICIOUS / LIKELY LEGITIMATE / INSUFFICIENT DATA
